@@ -199,6 +199,17 @@ export interface ImportReport {
   reevaluated?: number;
 }
 
+export interface BrandProfile {
+  id: string;
+  name: string;
+  description: string;
+  website?: string;
+  logoUrl?: string;
+  colors: string[];
+  tone: string;
+  guidelines: string;
+}
+
 /* ------------------------------ Cliente --------------------------- */
 const TOKEN_KEY = 'cf.token';
 export function getToken(): string | null {
@@ -266,6 +277,8 @@ export const api = {
   login: (userId: string) => req<{ token: string; user: User }>('POST', '/auth/login', { userId }),
   me: () => req<User>('GET', '/me'),
   status: () => req<SystemStatus>('GET', '/system/status'),
+  brandProfiles: () => req<BrandProfile[]>('GET', '/system/brand-profiles'),
+  saveBrandProfile: (profile: BrandProfile) => req<BrandProfile>('PUT', '/system/brand-profiles', profile),
   brand: () => req<{ version: string; colors: Record<string, string>; fonts: Record<string, { family: string }>; voice: { name: string; tone: string[]; doExamples: string[]; dontExamples: string[] }; rules: RuleDefinition[] }>('GET', '/system/brand'),
 
   catalog: () => req<{ products: Product[]; pracas: Praca[]; segments: Segment[] }>('GET', '/catalog'),

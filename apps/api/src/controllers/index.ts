@@ -19,6 +19,7 @@ import {
 } from '../models/governance.model';
 import { getUser, listUsers } from '../models/user.model';
 import { aiStatus } from '../services/ai';
+import { listBrandProfiles, upsertBrandProfile } from '../services/brand-profiles.service';
 import { issueToken } from '../services/auth.service';
 import { buildContext } from '../services/context.service';
 import { critiqueCreative } from '../services/critique.service';
@@ -63,6 +64,12 @@ export const SystemController = {
   async status(_req: Request, res: Response) {
     const rules = await getRulesConfig();
     res.json({ ai: aiStatus(), db: db().kind, today: await getToday(), brandVersion: BRAND_VERSION, rulesVersion: rules.version });
+  },
+  async brands(_req: Request, res: Response) {
+    res.json(await listBrandProfiles());
+  },
+  async saveBrand(req: Request, res: Response) {
+    res.json(await upsertBrandProfile(req.body));
   },
   async brand(_req: Request, res: Response) {
     res.json({ version: BRAND_VERSION, colors: COLOR_TOKENS, fonts: FONT_TOKENS, voice: BRAND_VOICE, formats: FORMATS, rules: RULES });

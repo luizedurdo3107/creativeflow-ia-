@@ -2,7 +2,7 @@ import { COLOR_LABELS, type ColorToken, type RulesConfig } from '@cf/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Brain, CalendarClock, Check, FlaskConical, Palette, RotateCcw, Scale, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { api } from '../api/client';
+import { api, type BrandProfile } from '../api/client';
 import { PageShell } from '../components/Layout';
 import { Badge, Button, ErrorBox, Loading, PageHeader, Tabs, Toggle } from '../components/ui';
 import { can, useAuth } from '../lib/auth';
@@ -42,7 +42,9 @@ function BrandTab() {
   if (q.error) return <ErrorBox error={q.error} />;
   const b = q.data!;
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-6">
+      <BrandProfilesEditor />
+      <div className="grid gap-6 lg:grid-cols-2">
       <div className="card p-5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-semibold">Tokens de cor</h3>
@@ -99,8 +101,38 @@ function BrandTab() {
           Manual sintético construído a partir de observação de materiais públicos; o critério (fonte, data, decisão) está documentado em docs/MANUAL-DE-MARCA.md.
         </div>
       </div>
+      </div>
     </div>
   );
+}
+
+
+function BrandProfilesEditor() {
+  const { user } = useAuth();
+  const admin = can(user, 'admin');
+  const q = useQuery({ queryKey: ['brand-profiles'], queryFn: api.brandProfiles });
+  const client = useQueryClient();
+  const toast = useToast();
+  const [profile, setProfile] = useState<BrandProfile | null>(null);
+  const save = useMutation({
+    mutationFn: () => api.saveBrandProfile(profile!),
+    onSuccess: () => { client.invalidateQueries({ queryKey: ['brand-profiles'] }); toast('Perfil de marca salvo no banco.'); },
+    onError: (e) => toast((e as Error).message, 'error'),
+  });
+  if (q.isLoading) return <Loading />;
+  if (q.error) return <ErrorBox error={q.error} />;
+  const brands = q.data ?? [];
+  const edit = (key: keyof BrandProfile, value: string) => setProfile((p) => p ? { ...p, [key]: key === 'colors' ? value.split(',').map((x) => x.trim()) : value } : p);
+  return <div className="card space-y-4 p-5">
+    <div><h3 className="font-semibold">Perfis de empresas</h3><p className="text-xs text-slate-500">Cadastros persistentes. O motor de criação ainda usa o manual farmacêutico original; integrar o perfil escolhido à geração será a próxima etapa.</p></div>
+    <div className="flex flex-wrap gap-2">{brands.map((b) => <button type="button" key={b.id} className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setProfile({ ...b })}>{b.name}</button>)}
+    {admin && <button type="button" className="rounded border border-slate-300 px-3 py-2 text-sm" onClick={() => setProfile({ id:'nova-marca', name:'', description:'', website:'', logoUrl:'', colors:['#09252D'], tone:'', guidelines:'' })}>+ Nova marca</button>}</div>
+    {profile && <div className="grid gap-3 md:grid-cols-2">
+      {(['id','name','description','website','logoUrl','tone','guidelines'] as const).map((key) => <label key={key} className="text-xs font-semibold text-slate-700">{({id:'Identificador',name:'Nome',description:'Descrição',website:'Site',logoUrl:'URL da logo',tone:'Tom de voz',guidelines:'Diretrizes'} as const)[key]}<input className="mt-1 w-full rounded border border-slate-300 p-2 text-sm font-normal" value={profile[key] ?? ''} disabled={!admin} onChange={(e) => edit(key,e.target.value)} /></label>)}
+      <label className="text-xs font-semibold text-slate-700">Cores HEX (separadas por vírgula)<input className="mt-1 w-full rounded border border-slate-300 p-2 text-sm font-normal" value={profile.colors.join(', ')} disabled={!admin} onChange={(e) => edit('colors',e.target.value)} /></label>
+      {admin && <button type="button" disabled={save.isPending} className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" onClick={() => save.mutate()}>Salvar marca</button>}
+    </div>}
+  </div>;
 }
 
 function TagEditor({ value, onChange, disabled }: { value: string[]; onChange: (v: string[]) => void; disabled: boolean }) {

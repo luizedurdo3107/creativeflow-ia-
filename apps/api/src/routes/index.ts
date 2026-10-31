@@ -29,6 +29,8 @@ export function apiRouter(): Router {
   r.get('/me', ah(Auth.me));
   r.get('/system/status', ah(System.status));
   r.get('/system/brand', ah(System.brand));
+  r.get('/system/brand-profiles', ah(System.brands));
+  r.put('/system/brand-profiles', ADMIN, ah(System.saveBrand));
 
   // catálogo e ofertas (fonte comercial)
   r.get('/catalog', ah(Catalog.catalog));
