@@ -26,6 +26,7 @@ import { CampaignsPage } from './pages/Campaigns';
 import { CatalogPage } from './pages/Catalog';
 import { DashboardPage } from './pages/Dashboard';
 import { LoginPage } from './pages/Login';
+import { BrandCampaignsPage } from './pages/BrandCampaigns';
 import { NewCampaignPage } from './pages/NewCampaign';
 import { StudioPage } from './pages/Studio';
 
@@ -52,6 +53,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="/campanhas/nova" element={<NewCampaignPage />} />
                 <Route path="/campanhas/:id" element={<CampaignPage />} />
                 <Route path="/pecas/:id" element={<StudioPage />} />
+                <Route path="/marcas/campanhas" element={<BrandCampaignsPage />} />
                 <Route path="/aprovacoes" element={<ApprovalsPage />} />
                 <Route path="/catalogo" element={<CatalogPage />} />
                 <Route path="/admin" element={<AdminPage />} />

@@ -1,0 +1,32 @@
+CreativeFlow AI — entrega da branch feat/semifinal-lumos
+
+INCLUÍDO:
+- Projeto original inteiro, histórico Git local e branch de trabalho separada.
+- Cadastro de marcas com armazenamento persistente, upload de logo local PNG/JPEG/WebP.
+- Criação e listagem de campanhas institucionais com briefing validado.
+- IA generativa quando configurada, fallback declarado quando indisponível.
+- Preview de feed, story e banner com marca, textos e logo; edição de cópia.
+- Aprovação por revisor distinto, revogada por edição; log de operações.
+- ZIP de campanha aprovado com PNGs/legenda/manifesto via Chromium.
+- Testes de API escritos e exemplos de artes PNG/SVG.
+
+VERIFICAÇÕES EFETUADAS NESTE AMBIENTE:
+- Verificação sintática TypeScript/TSX: sem erros sintáticos.
+- SVG de exemplo: gerados, convertidos para PNG e XML validado.
+- Git: alterações isoladas na branch, sem remote e sem modificar main.
+
+PENDENTE DE VALIDAÇÃO NO COMPUTADOR DO TIME:
+- Instalar pacotes via pnpm (registro npm inacessível neste ambiente).
+- Executar pnpm typecheck, pnpm test e pnpm build.
+- Testar a API e o ciclo de exportação PNG/ZIP em execução real.
+- Conferir visual e conteúdo real após anexar a logo autorizada.
+- Testar a IA externa com uma chave privada de desenvolvimento.
+- Publicar uma versão de testes em ambiente seguro, após confirmar regras do hackathon.
+
+NÃO IMPLEMENTADO:
+- Integração com banco interno, ERP ou APIs privadas da Pague Menos.
+- Publicação automática em redes sociais.
+- Autenticação empresarial; perfis atuais são usuários de demonstração.
+- Métricas reais de economia de tempo ou comprovação de conformidade regulatória.
+
+Leia docs/SEMIFINAL-LUMOS-README.md antes de usar.

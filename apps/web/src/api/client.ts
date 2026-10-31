@@ -205,9 +205,23 @@ export interface BrandProfile {
   description: string;
   website?: string;
   logoUrl?: string;
+  logoDataUri?: string;
   colors: string[];
   tone: string;
   guidelines: string;
+}
+
+export type InstitutionalFormat = 'feed' | 'story' | 'banner';
+export interface InstitutionalInput {
+  brandId: string; name: string; objective: string; audience: string; keyMessage: string;
+  cta: string; sourceNotes: string; formats: InstitutionalFormat[]; confirmed: boolean;
+}
+export interface InstitutionalCopy { headline: string; subtitle: string; caption: string; cta: string; }
+export interface InstitutionalCampaign {
+  id: string; brandId: string; brand: BrandProfile; name: string; input: InstitutionalInput;
+  copies: InstitutionalCopy; aiMode: string; status: 'rascunho'|'aprovada'|'reprovada';
+  createdBy: string; reviewedBy: string|null; reviewNote: string|null;
+  createdAt: string; updatedAt: string; reviewedAt: string|null;
 }
 
 /* ------------------------------ Cliente --------------------------- */
@@ -277,6 +291,15 @@ export const api = {
   login: (userId: string) => req<{ token: string; user: User }>('POST', '/auth/login', { userId }),
   me: () => req<User>('GET', '/me'),
   status: () => req<SystemStatus>('GET', '/system/status'),
+  institutional: () => req<InstitutionalCampaign[]>('GET', '/institutional'),
+  createInstitutional: (data: InstitutionalInput) => req<InstitutionalCampaign>('POST', '/institutional', data),
+  getInstitutional: (id: string) => req<InstitutionalCampaign>('GET', `/institutional/${id}`),
+  institutionalAudit: (id: string) => req<{actorId:string;action:string;details:Record<string,unknown>;createdAt:string}[]>('GET',`/institutional/${id}/audit`),
+  generateInstitutional: (id: string) => req<InstitutionalCampaign>('POST', `/institutional/${id}/generate`),
+  updateInstitutionalCopy: (id: string, data: Partial<InstitutionalCopy>) => req<InstitutionalCampaign>('PATCH', `/institutional/${id}/copy`, data),
+  reviewInstitutional: (id: string, decision: 'aprovada'|'reprovada', note: string) => req<InstitutionalCampaign>('POST', `/institutional/${id}/review`, {decision,note}),
+  previewInstitutional: (id: string, format: InstitutionalFormat) => req<{svg: string; status: string}>('GET', `/institutional/${id}/preview/${format}`),
+  exportInstitutional: (id: string) => download(`/institutional/${id}/export`, `${id}-aprovado.zip`),
   brandProfiles: () => req<BrandProfile[]>('GET', '/system/brand-profiles'),
   saveBrandProfile: (profile: BrandProfile) => req<BrandProfile>('PUT', '/system/brand-profiles', profile),
   brand: () => req<{ version: string; colors: Record<string, string>; fonts: Record<string, { family: string }>; voice: { name: string; tone: string[]; doExamples: string[]; dontExamples: string[] }; rules: RuleDefinition[] }>('GET', '/system/brand'),

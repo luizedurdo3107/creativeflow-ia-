@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { CalendarClock, CheckSquare, FolderKanban, LayoutDashboard, LogOut, Package, PlusCircle, Settings2, Sparkles } from 'lucide-react';
+import { CalendarClock, CheckSquare, FolderKanban, LayoutDashboard, LogOut, Package, PlusCircle, Settings2, Sparkles, Palette } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
@@ -39,6 +39,9 @@ export function Layout() {
               Nova campanha
             </Item>
           )}
+          <Item to="/marcas/campanhas" icon={<Palette className="h-4 w-4" />}>
+            Campanhas de marcas
+          </Item>
           <Item to="/aprovacoes" icon={<CheckSquare className="h-4 w-4" />} badge={pending || undefined}>
             Aprovações
           </Item>
@@ -61,7 +64,7 @@ export function Layout() {
               <CalendarClock className="h-3.5 w-3.5" /> Hoje: {fmtDate(status.data.today)}
             </div>
           )}
-          <div className="px-2 text-[11px] text-slate-400">Dados 100% sintéticos · marca {status.data?.brandVersion}</div>
+          <div className="px-2 text-[11px] text-slate-400">Catálogo farmacêutico demonstrativo · marca {status.data?.brandVersion}</div>
         </div>
         {user && (
           <div className="flex items-center gap-3 border-t border-slate-200 p-4">

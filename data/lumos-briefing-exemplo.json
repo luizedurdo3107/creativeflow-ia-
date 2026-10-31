@@ -1,0 +1,11 @@
+{
+  "brandId": "lumos-connect",
+  "name": "Conheça o Norya",
+  "objective": "Apresentar o Norya e explicar seus recursos educacionais.",
+  "audience": "Estudantes e educadores do ensino médio",
+  "keyMessage": "O Norya é uma plataforma educacional inclusiva com recursos para personalizar a aprendizagem.",
+  "cta": "Conheça o Norya",
+  "sourceNotes": "Descrição institucional fornecida pela equipe da Lumos Connect; confirmar logo, links e informações com a equipe antes da publicação.",
+  "formats": ["feed", "story", "banner"],
+  "confirmed": true
+}

@@ -152,6 +152,34 @@ create table if not exists exports (
   created_at timestamptz not null default now()
 );
 
+create table if not exists institutional_campaigns (
+  id text primary key,
+  brand_id text not null,
+  brand_snapshot jsonb not null,
+  name text not null,
+  data jsonb not null,
+  copies jsonb not null,
+  ai_mode text not null default 'template',
+  status text not null default 'rascunho',
+  created_by text not null,
+  reviewed_by text,
+  review_note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  reviewed_at timestamptz
+);
+create index if not exists inst_brand_status on institutional_campaigns (brand_id, status);
+create table if not exists institutional_campaign_events (
+  id text primary key,
+  campaign_id text not null,
+  actor_id text not null,
+  action text not null,
+  details jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists inst_events_campaign on institutional_campaign_events (campaign_id, created_at);
+
+
 create table if not exists semantic_checks (
   hash text primary key,
   provider text not null,
@@ -171,3 +199,6 @@ create table if not exists critiques (
   created_at timestamptz not null default now()
 );
 `;
+
+// Additional institutional campaigns are deliberately stored separately from
+// pharmacy campaign tables. This prevents cross-application of drug rules.

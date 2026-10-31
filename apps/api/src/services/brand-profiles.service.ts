@@ -8,6 +8,7 @@ export const BrandProfileSchema = z.object({
   description: z.string().trim().min(10).max(1500),
   website: z.string().url().max(300).optional().or(z.literal('')),
   logoUrl: z.string().url().max(500).optional().or(z.literal('')),
+  logoDataUri: z.string().max(1_700_000).regex(/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/).optional().or(z.literal('')),
   colors: z.array(z.string().regex(/^#[0-9a-fA-F]{6}$/)).min(1).max(8),
   tone: z.string().trim().min(3).max(300),
   guidelines: z.string().max(3000).default(''),

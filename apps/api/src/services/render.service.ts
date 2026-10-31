@@ -83,3 +83,14 @@ export async function closeRenderer() {
     await b?.close();
   }
 }
+
+/** Renders the approved, sanitized institutional SVG with the same Chromium as regular PNG exports. */
+export async function renderInstitutionalPng(svg: string, width: number, height: number): Promise<Buffer> {
+  const b = await browser();
+  const page = await b.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
+  try {
+    await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0}svg{display:block}</style></head><body>${svg}</body></html>`, { waitUntil: 'load' });
+    await page.evaluate(() => document.fonts.ready);
+    return await page.screenshot({type:'png', clip: {x:0,y:0,width,height}});
+  } finally { await page.close(); }
+}

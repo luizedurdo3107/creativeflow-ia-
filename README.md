@@ -16,7 +16,7 @@ O MVP funciona de ponta a ponta com dados sintéticos e marca construída a part
 > Um briefing estruturado vira dezenas de peças multicanal (por praça, público e formato), com a identidade da marca preservada e **nada exportado sem conformidade**.
 > A IA escreve e sugere; templates da marca montam; regras determinísticas e pessoas decidem.
 
-ℹ️ **Dados sintéticos.** Todos os produtos, marcas, preços, usuários e o manual de marca são fictícios. O repositório não contém dados internos de empresas nem de clientes.
+ℹ️ **Separação de dados.** O módulo farmacêutico original utiliza catálogo, ofertas e usuários sintéticos; o novo módulo **Campanhas de marcas** permite inserir dados reais autorizados de uma empresa. Não há integração com dados internos da Pague Menos.
 
 ---
 
@@ -50,6 +50,12 @@ O MVP funciona de ponta a ponta com dados sintéticos e marca construída a part
 O que é **planejado** e não está implementado está em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md#o-que-nao-esta-implementado).
 
 ---
+
+## Novo fluxo para campanhas de marcas reais — branch de semifinal
+
+Na rota `/marcas/campanhas`, cadastre um briefing com fatos confirmados e selecione a Lumos Connect ou outra marca configurada em **Marca e regras**. O sistema prepara peças institucionais para feed, story e banner sem herdar as regras farmacêuticas. É possível editar os textos, visualizar a arte com logo/cores da marca, aprovar com um revisor independente e exportar um ZIP de PNGs, legenda e manifesto. Toda mudança revoga a aprovação e as ações principais são registradas.
+
+**IA real é opcional**: com provedor desconfigurado, o conteúdo vem de um template baseado no briefing e a interface identifica que não usou IA. A geração e a publicação não devem ser tratadas como validação dos fatos: a organização deve conferir e autorizar. Para um guia da branch, veja [`docs/SEMIFINAL-LUMOS-README.md`](docs/SEMIFINAL-LUMOS-README.md).
 
 ## Rodando localmente
 

@@ -193,3 +193,15 @@ export const llmProvider: AIProvider = {
       maxTokens: 1200,
     }),
 };
+
+/** Institution copy is a separate prompt; pharmacy product rules must not leak into it. */
+export async function generateInstitutionalCopy(
+  input: { name:string; objective:string; audience:string; keyMessage:string; cta:string; sourceNotes:string },
+  brand: {name:string; description:string; tone:string; guidelines:string},
+): Promise<{headline:string;subtitle:string;caption:string;cta:string}> {
+  const schema = z.object({ headline:z.string().min(2).max(110), subtitle:z.string().min(2).max(220),
+    caption:z.string().min(5).max(1000), cta:z.string().min(2).max(50) });
+  return callJson({ name:'campanha_institucional', schema, maxTokens:750,
+    system:'Você cria texto publicitário em português brasileiro. Use EXCLUSIVAMENTE dados fornecidos como fatos. Não invente preços, resultados, parcerias, estatísticas, URLs nem serviços. O CTA deve preservar o sentido do CTA fornecido. Não inclua hashtags não solicitadas. Responda somente no formato JSON validável.',
+    user:[{type:'text',text:JSON.stringify({brand,input})}] });
+}

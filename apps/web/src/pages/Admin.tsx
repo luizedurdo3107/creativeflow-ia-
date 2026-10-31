@@ -124,11 +124,22 @@ function BrandProfilesEditor() {
   const brands = q.data ?? [];
   const edit = (key: keyof BrandProfile, value: string) => setProfile((p) => p ? { ...p, [key]: key === 'colors' ? value.split(',').map((x) => x.trim()) : value } : p);
   return <div className="card space-y-4 p-5">
-    <div><h3 className="font-semibold">Perfis de empresas</h3><p className="text-xs text-slate-500">Cadastros persistentes. O motor de criação ainda usa o manual farmacêutico original; integrar o perfil escolhido à geração será a próxima etapa.</p></div>
+    <div><h3 className="font-semibold">Perfis de empresas</h3><p className="text-xs text-slate-500">Cadastros persistentes. O estúdio institucional utiliza as marcas cadastradas. As campanhas farmacêuticas continuam com regras próprias.</p></div>
     <div className="flex flex-wrap gap-2">{brands.map((b) => <button type="button" key={b.id} className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setProfile({ ...b })}>{b.name}</button>)}
-    {admin && <button type="button" className="rounded border border-slate-300 px-3 py-2 text-sm" onClick={() => setProfile({ id:'nova-marca', name:'', description:'', website:'', logoUrl:'', colors:['#09252D'], tone:'', guidelines:'' })}>+ Nova marca</button>}</div>
+    {admin && <button type="button" className="rounded border border-slate-300 px-3 py-2 text-sm" onClick={() => setProfile({ id:'nova-marca', name:'', description:'', website:'', logoUrl:'', colors:['#09252D'], tone:'', guidelines:'', logoDataUri:'' })}>+ Nova marca</button>}</div>
     {profile && <div className="grid gap-3 md:grid-cols-2">
       {(['id','name','description','website','logoUrl','tone','guidelines'] as const).map((key) => <label key={key} className="text-xs font-semibold text-slate-700">{({id:'Identificador',name:'Nome',description:'Descrição',website:'Site',logoUrl:'URL da logo',tone:'Tom de voz',guidelines:'Diretrizes'} as const)[key]}<input className="mt-1 w-full rounded border border-slate-300 p-2 text-sm font-normal" value={profile[key] ?? ''} disabled={!admin} onChange={(e) => edit(key,e.target.value)} /></label>)}
+      <label className="text-xs font-semibold text-slate-700">Logo original (PNG, JPEG ou WebP — até 1 MB)
+        <input className="mt-1 w-full text-sm font-normal" type="file" accept="image/png,image/jpeg,image/webp" disabled={!admin} onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 1_000_000) { toast('Use PNG, JPEG ou WebP de até 1 MB.', 'error'); return; }
+          const reader = new FileReader();
+          reader.onload = () => edit('logoDataUri', String(reader.result));
+          reader.readAsDataURL(file);
+        }} />
+        {profile.logoDataUri && <img alt={`Logo de ${profile.name}`} src={profile.logoDataUri} className="mt-2 h-16 max-w-48 object-contain" />}
+      </label>
       <label className="text-xs font-semibold text-slate-700">Cores HEX (separadas por vírgula)<input className="mt-1 w-full rounded border border-slate-300 p-2 text-sm font-normal" value={profile.colors.join(', ')} disabled={!admin} onChange={(e) => edit('colors',e.target.value)} /></label>
       {admin && <button type="button" disabled={save.isPending} className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" onClick={() => save.mutate()}>Salvar marca</button>}
     </div>}

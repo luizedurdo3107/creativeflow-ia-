@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" role="img" aria-label="Peça Conheça o Norya">
+  <rect width="1080" height="1920" fill="#09252D"/>
+  <circle cx="939.6" cy="1401.6" r="370" fill="#4E6F5A" opacity="0.29"/>
+  <circle cx="1058.4" cy="1516.8000000000002" r="220" fill="#4E6F5A" opacity="0.32"/>
+  <circle cx="972" cy="307.2" r="85" fill="#4E6F5A" opacity="0.32"/>
+  <line x1="95" y1="310" x2="985" y2="310" stroke="#FFFFFF" opacity="0.22" stroke-width="2"/>
+  
+  <text x="95" y="215" fill="#FFFFFF" font-size="40" font-weight="700" font-family="Arial, sans-serif">Lumos Connect</text>
+  <text x="95" y="498" fill="#FFFFFF" opacity="0.8" font-size="28" letter-spacing="3" font-family="Arial, sans-serif">ESTUDANTES E EDUCADORES</text>
+  <text x="95" y="590" fill="#FFFFFF" font-size="76" font-weight="800" font-family="Arial, sans-serif">Conheça o Norya</text>
+  <text x="95" y="732.64" fill="#FFFFFF" font-size="44" font-weight="400" font-family="Arial, sans-serif">Uma plataforma de educação inclusiva,</text><text x="95" y="796.64" fill="#FFFFFF" font-size="44" font-weight="400" font-family="Arial, sans-serif">feita para personalizar experiências</text><text x="95" y="860.64" fill="#FFFFFF" font-size="44" font-weight="400" font-family="Arial, sans-serif">de aprendizagem.</text>
+  <rect x="95" y="1540" rx="22" width="710" height="112" fill="#FFFFFF"/>
+  <text x="130" y="1612" fill="#09252D" font-family="Arial, sans-serif" font-weight="700" font-size="35">Conheça o Norya</text>
+  <text x="95" y="1850" fill="#FFFFFF" opacity="0.75" font-size="26" font-family="Arial, sans-serif">Lumos Connect</text>
+  </svg>

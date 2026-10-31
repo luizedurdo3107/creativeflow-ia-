@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { z } from 'zod';
+import { createInstitutional, getInstitutional, getInstitutionalAudit, listInstitutional, regenerateInstitutional, updateInstitutionalCopy, reviewInstitutional, institutionalSvg, institutionalZip, InstitutionFormat } from '../services/institutional.service';
 import multer from 'multer';
 import {
   AdminController as Admin,
@@ -31,6 +33,41 @@ export function apiRouter(): Router {
   r.get('/system/brand', ah(System.brand));
   r.get('/system/brand-profiles', ah(System.brands));
   r.put('/system/brand-profiles', ADMIN, ah(System.saveBrand));
+
+  // Campanhas institucionais: marcas reais sem herdar o regulamento farmacêutico.
+  r.get('/institutional', ah(async (_req, res) => { res.json(await listInstitutional()); }));
+  r.post('/institutional', CRIA, ah(async (req, res) => {
+    res.status(201).json(await createInstitutional(req.body, req.user!.id));
+  }));
+  r.get('/institutional/:id', ah(async (req, res) => {
+    res.json(await getInstitutional(req.params.id));
+  }));
+  r.get('/institutional/:id/audit', ah(async (req, res) => {
+    res.json(await getInstitutionalAudit(req.params.id));
+  }));
+  r.post('/institutional/:id/generate', CRIA, ah(async (req, res) => {
+    res.json(await regenerateInstitutional(req.params.id, req.user!.id));
+  }));
+  r.patch('/institutional/:id/copy', CRIA, ah(async (req, res) => {
+    res.json(await updateInstitutionalCopy(req.params.id, req.body, req.user!.id));
+  }));
+  r.post('/institutional/:id/review', REVISA, ah(async (req, res) => {
+    const input = z.object({decision: z.enum(['aprovada','reprovada']),note:z.string().max(500).default('')}).parse(req.body);
+    res.json(await reviewInstitutional(req.params.id, input.decision, req.user!.id, input.note));
+  }));
+  r.get('/institutional/:id/preview/:format', ah(async (req, res) => {
+    const format = InstitutionFormat.parse(req.params.format);
+    const c = await getInstitutional(req.params.id);
+    if (!c.input.formats.includes(format)) return res.status(400).json({error:'Formato não selecionado nesta campanha.'});
+    res.json({ svg: institutionalSvg(c, format), status:c.status });
+  }));
+  r.get('/institutional/:id/export', ah(async (req, res) => {
+    const c = await getInstitutional(req.params.id);
+    const buffer = await institutionalZip(c, req.user!.id);
+    res.setHeader('content-type','application/zip');
+    res.setHeader('content-disposition',`attachment; filename="${c.id}-aprovado.zip"`);
+    res.send(buffer);
+  }));
 
   // catálogo e ofertas (fonte comercial)
   r.get('/catalog', ah(Catalog.catalog));
