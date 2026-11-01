@@ -1,74 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Layers, PlusCircle, ShieldAlert, Sparkles, Workflow } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { CheckCircle2, Palette, PlusCircle, FileCheck2, Package, Users } from 'lucide-react';
 import { api } from '../api/client';
+import { useAuth, can } from '../lib/auth';
 import { PageShell } from '../components/Layout';
-import { Button, Empty, ErrorBox, Loading, PageHeader, Stat } from '../components/ui';
-import { CampaignRow } from './Campaigns';
-import { can, useAuth } from '../lib/auth';
-
-export function DashboardPage() {
-  const { user } = useAuth();
-  const campaigns = useQuery({ queryKey: ['campaigns'], queryFn: api.campaigns });
-  const queue = useQuery({ queryKey: ['queue'], queryFn: api.queue });
-  if (campaigns.isLoading) return <Loading />;
-  if (campaigns.error) return <ErrorBox error={campaigns.error} />;
-  const list = campaigns.data ?? [];
-  const sum = (k: string) => list.reduce((s, c) => s + ((c.byStatus as Record<string, number>)[k] ?? 0), 0);
-  const total = list.reduce((s, c) => s + c.total, 0);
-  const inherited = sum('aprovado_por_heranca');
-  const approved = inherited + sum('aprovado');
-  const exceptions = queue.data?.items.length ?? 0;
-
-  return (
-    <PageShell>
-      <PageHeader
-        eyebrow={`Olá, ${user?.name.split(' ')[0]}`}
-        title="Painel de produção criativa"
-        subtitle="Visão geral de campanhas, peças e governança."
-        actions={can(user, 'criador') && <Link to="/campanhas/nova"><Button variant="primary" icon={<PlusCircle className="h-4 w-4" />}>Nova campanha</Button></Link>}
-      />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Peças geradas" value={total} hint={`${list.length} campanha(s)`} />
-        <Stat label="Liberadas" value={approved} hint={approved ? `${Math.round((inherited / approved) * 100)}% por herança do conceito` : 'aguardando aprovações'} tone="emerald" />
-        <Stat label="Fila de exceções" value={exceptions} hint="peças editadas ou com alerta" tone={exceptions ? 'amber' : undefined} />
-        <Stat label="Bloqueadas por regra" value={sum('bloqueado')} hint="erro crítico impede aprovação" tone={sum('bloqueado') ? 'red' : undefined} />
-      </div>
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-semibold text-slate-900">Campanhas recentes</h2>
-            <Link to="/campanhas" className="text-sm text-brand-600 hover:underline">Ver todas</Link>
-          </div>
-          {list.length === 0 ? (
-            <Empty icon={<Layers className="h-8 w-8" />} title="Nenhuma campanha ainda" text="Crie um briefing e veja um único conceito virar dezenas de peças por praça, público e canal." action={can(user, 'criador') && <Link to="/campanhas/nova"><Button variant="primary">Criar a primeira campanha</Button></Link>} />
-          ) : (
-            <div className="space-y-3">{list.slice(0, 5).map((c) => <CampaignRow key={c.id} c={c} />)}</div>
-          )}
-        </div>
-        <div className="space-y-4">
-          <h2 className="font-semibold text-slate-900">Como o fluxo funciona</h2>
-          {[
-            { icon: Workflow, t: 'Briefing estruturado', d: 'Produtos e ofertas vêm do cadastro. A IA não inventa preço, vigência nem alegação.' },
-            { icon: Sparkles, t: 'Um conceito, muitas peças', d: 'A IA escreve o conceito por público; templates da marca derivam todos os formatos e praças.' },
-            { icon: ShieldAlert, t: 'Aprovação por exceção', d: 'O revisor aprova o conceito uma vez. Só peças editadas ou com alerta vão para a fila.' },
-          ].map(({ icon: Icon, t, d }) => (
-            <div key={t} className="card flex gap-3 p-4">
-              <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
-              <div>
-                <div className="text-sm font-semibold">{t}</div>
-                <div className="text-xs text-slate-500">{d}</div>
-              </div>
-            </div>
-          ))}
-          {exceptions > 0 && (
-            <Link to="/aprovacoes" className="card flex items-center justify-between border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
-              {exceptions} peça(s) aguardando sua decisão <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
-        </div>
-      </div>
-    </PageShell>
-  );
+import { DemoDashboardPage } from './DemoDashboard';
+export function DashboardPage(){const {config}=useAuth();return config?.appMode==='demo'?<DemoDashboardPage/>:<ProductDashboard/>;}
+function ProductDashboard(){
+ const {user}=useAuth();const brands=useQuery({queryKey:['brand-profiles'],queryFn:api.brandProfiles});const campaigns=useQuery({queryKey:['institutional'],queryFn:api.institutional});const usage=useQuery({queryKey:['usage'],queryFn:api.usage});
+ const items=campaigns.data??[];const total=items.reduce((n,c)=>n+c.input.formats.length,0);const pending=items.filter(c=>c.status==='em_revisao');
+ const steps=[{to:'/admin',title:'Cadastre sua marca',text:'Logo original, paleta, tipografia e informações oficiais.',icon:Palette},{to:'/marcas/catalogo',title:'Adicione produtos ou serviços',text:'Dados próprios com preço, condições e fonte.',icon:Package},{to:'/marcas/campanhas',title:'Crie a primeira campanha',text:'Briefing, formatos e criação com IA ou textos da sua equipe.',icon:PlusCircle}];
+ return <PageShell wide><div className="mb-7 flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm text-teal-700">Olá, {user?.name.split(' ')[0]}</p><h1 className="mt-1 text-3xl font-bold">Seu espaço de criação</h1><p className="mt-2 text-sm text-slate-600">Campanhas da sua equipe, da primeira ideia ao material aprovado.</p></div>{can(user,'criador')&&<Link className="rounded-lg bg-teal-800 px-4 py-3 text-sm font-semibold text-white" to="/marcas/campanhas">Criar campanha</Link>}</div>
+  {(brands.error||campaigns.error)&&<p role="alert" className="mb-4 text-sm text-red-700">Não foi possível carregar os dados. Atualize a página.</p>}
+  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[['Marcas cadastradas',brands.data?.length??0],['Campanhas',items.length],['Em revisão',pending.length],['Aprovadas',items.filter(c=>c.status==='aprovada').length]].map(([label,value])=><div className="card p-5" key={label}><p className="text-xs font-semibold text-slate-500">{label}</p><p className="mt-2 text-3xl font-bold text-teal-900">{campaigns.isLoading?'—':value}</p></div>)}</div>
+  {!brands.isLoading&&(brands.data?.length??0)===0&&<section className="mt-7"><h2 className="mb-3 text-lg font-bold">Vamos começar com os seus dados</h2><div className="grid gap-4 lg:grid-cols-3">{steps.map(({to,title,text,icon:Icon},index)=><Link to={to} className="card p-5 hover:border-teal-600" key={to}><Icon className="h-6 w-6 text-teal-700"/><h3 className="mt-3 font-bold">{index+1}. {title}</h3><p className="mt-2 text-sm text-slate-600">{text}</p></Link>)}</div></section>}
+  <div className="mt-8 grid items-start gap-6 lg:grid-cols-[2fr_1fr]"><section><h2 className="mb-3 text-lg font-bold">Campanhas recentes</h2>{items.length===0?<div className="card p-8 text-sm text-slate-600">Sua primeira campanha aparecerá aqui. Nenhum material de demonstração foi adicionado.</div>:<div className="space-y-3">{items.slice(0,8).map(c=><Link key={c.id} to={`/marcas/campanhas?campanha=${c.id}`} className="card block p-4 hover:border-teal-500"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">{c.name}</h3><span className="rounded-full bg-slate-100 px-3 py-1 text-xs">{c.status.replace('_',' ')}</span></div><p className="mt-1 text-xs text-slate-500">{c.brand.name} · {c.input.formats.length} formatos · Atualizada em {new Date(c.updatedAt).toLocaleDateString('pt-BR')}</p></Link>)}</div>}</section>
+   <div className="space-y-4"><section className="card p-5"><h2 className="font-bold">Geração de hoje</h2><p className="mt-3 text-sm">Imagens: {usage.data?.images.used??0} / {usage.data?.images.limit??'—'}</p><p className="mt-2 text-sm">Chamadas de texto: {usage.data?.text.used??0} / {usage.data?.text.limit??'—'}</p><p className="mt-3 text-xs text-slate-500">Limites locais para controlar o consumo. As cotas da conta são compartilhadas na Cloudflare.</p></section><section className="card p-5"><FileCheck2 className="h-5 w-5 text-teal-700"/><h2 className="mt-2 font-bold">Uma revisão independente</h2><p className="mt-2 text-sm text-slate-600">{total} formatos cadastrados em campanhas. Envie os rascunhos para revisão e exporte apenas as versões aprovadas.</p><Link className="mt-3 inline-block text-sm font-semibold text-teal-800 underline" to="/aprovacoes">Abrir aprovações</Link></section>{can(user,'admin')&&<Link to="/configuracoes" className="card flex items-center gap-3 p-5 text-sm font-semibold"><Users className="h-5 w-5 text-teal-700"/>Convidar sua equipe</Link>}</div>
+  </div></PageShell>;
 }

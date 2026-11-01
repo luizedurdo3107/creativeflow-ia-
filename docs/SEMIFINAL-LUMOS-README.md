@@ -1,55 +1,74 @@
-# CreativeFlow AI — branch `feat/semifinal-lumos`
+> Documento da etapa anterior. Para o modo atual com contas reais e sem dados de exemplo, use [PRODUTO.md](PRODUTO.md). A senha de geração é exigida apenas no modo de demonstração.
 
-## Entregas incluídas neste ZIP
+# CreativeFlow AI — semifinal / Lumos Connect
 
-- O projeto **completo** extraído do ZIP original, preservado em commit `main` local.
-- Branch separada `feat/semifinal-lumos`, sem publicação ou merge no GitHub remoto.
-- Perfis persistentes de marcas com validação e upload local de logo PNG/JPEG/WebP no painel de administração.
-- Novo menu **Campanhas de marcas**, independente das campanhas farmacêuticas.
-- Briefing com dados informados e confirmados pelo responsável, geração de textos (IA quando configurada, ou template sem IA), três formatos visuais e edição de textos.
-- Prévia de feed 1080×1080, story 1080×1920 e banner 1920×1080.
-- Revisão humana por usuário diferente do criador. Qualquer edição revoga a aprovação.
-- ZIP de campanha **aprovada** com PNGs, legenda, manifest (origem, provedor, revisor e data).
-- Testes adicionais para fluxo e permissões.
+O projeto local está na branch `feat/semifinal-lumos`. As alterações desta rodada ficam na pasta de trabalho, sem commit, push ou merge.
 
-## Iniciar no computador
+## O fluxo disponível
 
-Pré-requisitos: Node 20+, `pnpm` e Chromium. Execute no diretório raiz:
+- Catálogo de produtos e serviços por marca, com nome, descrição, preço opcional, condições, fonte e estado ativo; cadastro manual e importação CSV/XLSX com conferência antes de salvar.
+- Dados comerciais selecionados vêm do catálogo, ficam preservados na composição e bloqueiam a exportação se o item tiver mudado.
+- Cadastro de várias marcas com descrição, cores HEX, fonte (Inter, Poppins, Nunito ou Arial), diretrizes e logo original PNG/JPEG/WebP de até 1 MB.
+- Campanhas institucionais independentes das regras e dos dados sintéticos de farmácia.
+- Briefing confirmado pelo responsável, direção de arte editável e prévias de feed (1080×1080), story (1080×1920) e banner (1920×1080).
+- Textos gerados pelo provedor configurado; quando ele está ausente ou falha, o sistema identifica o uso de template.
+- Imagem de fundo via Cloudflare Workers AI, gerada somente por ação explícita. A logo e os textos permanecem sob controle do compositor.
+- Edição manual e proposta por comando de texto com comparação antes/depois. A proposta só altera o rascunho ao clicar em **Aplicar proposta**. Sem IA configurada, a edição por comando fica indisponível.
+- Revisão por pessoa diferente do criador e do último editor, inclusive quando o editor é administrador.
+- Controle de versão para impedir sobrescrita ou aprovação de uma aba desatualizada.
+- Qualquer edição, regeneração de texto ou imagem revoga a aprovação.
+- Exportação de campanha aprovada com três PNGs (ou os formatos escolhidos), legenda e manifesto contendo textos, identidade visual, versão, origem das imagens e revisão.
+- Banco persistente e imagens em `DATA_DIR/ai-artworks`. Faça backup do volume inteiro.
+- Navegação adaptável para computador e celular.
+
+## Executar no computador
+
+Na pasta `creativeflow`, com Node 20+ e pnpm 10.28:
 
 ```bash
-corepack enable
-pnpm install
-cp .env.example .env
+pnpm install --frozen-lockfile
+# Somente se ainda não houver .env:
+cp -n .env.example .env
 pnpm dev
 ```
 
-Acesse `http://localhost:5173` e entre com os usuários **sintéticos** de demonstração:
-- Ana Souza: criação e edição;
-- Rui Lima: revisão independente;
-- Bia Costa: administração / cadastro de marcas.
+Abra `http://localhost:5173/marcas/campanhas`.
+Não substitua um `.env` existente: ele pode conter suas credenciais e configurações locais.
+Para exportar, é necessário Chromium ou Google Chrome instalado. O aplicativo tenta localizá-lo automaticamente; se necessário, defina o caminho em `CHROMIUM_PATH`.
 
-Para cadastrar a logo original da Lumos: `Marca e regras` → `Perfis de empresas` → `Lumos Connect` → `Logo original` → `Salvar marca`.
-A logo do usuário é mantida no banco da aplicação como data URI. Por segurança, apenas PNG/JPEG/WebP e até 1 MB pela interface.
+O banco PGlite fica em `data/pglite` por padrão. Não é necessário instalar Postgres para a demonstração local. `DATABASE_URL` permite usar Postgres externo.
 
-Para criar uma campanha real:
-1. Abra `Campanhas de marcas` e escolha `Lumos Connect`.
-2. Substitua os textos exemplificativos pelos **fatos aprovados da organização**.
-3. Confirme a autorização e selecione os formatos.
-4. Crie, revise a prévia e ajuste a cópia.
-5. Troque para um usuário **revisor diferente** daquele que criou.
-6. Aprove e faça o download do ZIP com PNGs e manifesto.
+## Roteiro de teste da equipe
 
-## Sobre IA e dados reais
+1. Entre como **Bia Costa** (admin), vá a **Marca e regras**, selecione Lumos e salve a identidade visual autorizada. A configuração inicial da Lumos é um exemplo a conferir com a empresa.
+2. Cadastre produtos ou serviços em **Produtos e serviços**, se a campanha divulgar um item específico. Preço, condições e fonte devem ser fornecidos pela empresa. É possível conferir e importar CSV/XLSX.
+3. Entre como **Ana Souza** (criadora), abra **Campanhas de marcas**, revise o briefing do Norya e selecione os formatos e, opcionalmente, um item do catálogo. Para outra marca, os textos da Lumos são limpos ao trocar de empresa.
+4. Confirme as fontes e a autorização. Crie a campanha. Confira os indicadores de texto e de imagem: são integrações distintas.
+5. Se a Cloudflare estiver configurada, digite a senha de geração e gere inicialmente apenas o feed. As outras visualizações não consomem uma nova geração.
+6. Ajuste os textos manualmente ou peça uma proposta por comando. Confira os fatos antes de aplicar. Valores de um item selecionado ficam no catálogo e são compostos pelo sistema.
+7. Entre como **Rui Lima** (revisor), abra a campanha e revise os formatos. Aprove ou peça ajustes com comentário.
+8. Baixe o pacote aprovado e confira os PNGs e o `manifest.json`.
+9. Volte à criadora, altere o texto e confirme que o download fica bloqueado até nova revisão.
+10. Reinicie o app e confirme a persistência da marca e da campanha.
 
-Com `AI_PROVIDER=mock` ou sem chave válida, **não existe geração por modelo externo**: os textos vêm do briefing e a interface marca `template-sem-ia`.
-Com `AI_PROVIDER=openai`, `azure-openai` ou `anthropic` configurado corretamente em `.env`, o serviço chama o modelo e valida a saída. Se falhar, usa o briefing e marca `template-fallback-ia`.
+Os usuários por seleção são de demonstração. Antes de disponibilizar dados privados pela internet, substitua esse login por autenticação empresarial.
 
-Os **dados da Lumos** são os que a equipe fornece; não são obtidos automaticamente de seus sistemas ou redes sociais. A descrição padrão serve apenas de ponto de partida, sujeita a aprovação. Não há postagem automática no Instagram.
-O fluxo farmacêutico original continua usando catálogo e regras sintéticos, separados da campanha institucional.
+## IA da Cloudflare
 
-## Proteção da versão já classificada
+Veja [IA-GRATUITA-CLOUDFLARE.md](IA-GRATUITA-CLOUDFLARE.md). Preencha apenas no `.env` local:
 
-A branch `main` local contém o ZIP inicial sem alterações. A branch `feat/semifinal-lumos` tem os novos commits. Não faça merge diretamente na `main` antes de executar os testes.
+```dotenv
+AI_PROVIDER=cloudflare
+CLOUDFLARE_ACCOUNT_ID=seu_account_id
+CLOUDFLARE_API_TOKEN=seu_token_workers_ai
+IMAGE_AI_ENABLED=true
+IMAGE_GENERATION_SECRET=sua_senha_local
+```
+
+Não há chamada à API de imagens da OpenAI. O texto pode usar outros provedores se alguém os selecionar explicitamente, mas o caminho deste piloto é a Cloudflare.
+A existência das variáveis indica configuração, não comprova conexão, permissões ou cota. A validação ao vivo depende de uma conta válida e de geração efetivamente concluída.
+
+## Validação automatizada
 
 ```bash
 pnpm typecheck
@@ -57,23 +76,17 @@ pnpm test
 pnpm build
 ```
 
-Para publicar no GitHub, vincule **seu repositório autorizado** como remoto e envie somente a branch de testes:
+Os testes da API usam banco isolado e diretório temporário, forçam o provedor de demonstração e simulam as respostas HTTP da Cloudflare. Eles não gastam sua cota nem alteram o banco da equipe.
+Há testes para permissões, versões desatualizadas, revisão independente, propostas de texto, números inventados, arte persistida, exportação PNG/ZIP e persistência após reinício. O fluxo farmacêutico original também continua coberto.
 
-```bash
-git remote add origin <URL-DO-REPOSITORIO-AUTORIZADO>
-git push -u origin feat/semifinal-lumos
-```
+## Escopo que depende de trabalho externo ou dados da equipe
 
-Não inclua `.env`, senhas, chaves de API, dados de terceiros ou materiais confidenciais. O login por seleção de usuários é apenas para **demonstração**; substitua por autenticação real antes de disponibilizar dados não públicos online. Confirme com a mentora as regras de propriedade intelectual e publicação do hackathon.
+- Account ID e token da Cloudflare válidos para testar uma geração ao vivo.
+- Logo, identidade visual e briefing oficialmente aprovados pela Lumos.
+- Publicação da campanha autorizada pela empresa.
+- Medição de produtividade manual versus CreativeFlow com o mesmo briefing, sem inventar resultados.
+- Integrações com ERP/APIs internas da Pague Menos: não há acesso nem integração implementada.
+- Publicação automática em redes sociais e autenticação SSO: não implementadas.
+- O catálogo farmacêutico continua sintético; CSV/XLSX importa ofertas de SKUs já cadastrados. O catálogo de novas marcas é independente e aceita produtos e serviços por cadastro manual ou CSV/XLSX, em **Produtos e serviços**.
 
-## O que ainda requer validação
-
-- Instalar dependências e executar `pnpm typecheck`, `pnpm test`, `pnpm build` em ambiente com npm acessível.
-- Testar renderização PNG com Chromium e revisar visualmente as dimensões de feed/story/banner.
-- Testar IA real com chave privada autorizada.
-- Fazer benchmark de produção manual × automática com dados coletados de verdade.
-- Publicar uma peça pela Lumos somente com autorização. Integração direta com ERP/API Pague Menos e publicação automática não foram implementadas.
-
-## Pré-visualizações incluídas
-
-`docs/previews/` contém os três exemplos em SVG e PNG, derivados do mesmo gerador vetorial do novo módulo e de um **briefing de exemplo**. Não representam uma postagem publicada nem um resultado medido. A arte final poderá usar a logo original se a equipe anexar o arquivo autorizado no cadastro de marcas.
+Os exemplos em `docs/previews` ilustram o compositor vetorial e não são imagens geradas por IA nem material oficialmente publicado.

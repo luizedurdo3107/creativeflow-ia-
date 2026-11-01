@@ -11,7 +11,7 @@ import { useToast } from '../lib/toast';
 
 type Tab = 'marca' | 'regras' | 'aprendizados' | 'demo';
 
-export function AdminPage() {
+export function DemoAdminPage() {
   const [tab, setTab] = useState<Tab>('marca');
   return (
     <PageShell>
@@ -107,8 +107,8 @@ function BrandTab() {
 }
 
 
-function BrandProfilesEditor() {
-  const { user } = useAuth();
+export function BrandProfilesEditor() {
+  const { user,config } = useAuth();
   const admin = can(user, 'admin');
   const q = useQuery({ queryKey: ['brand-profiles'], queryFn: api.brandProfiles });
   const client = useQueryClient();
@@ -124,11 +124,11 @@ function BrandProfilesEditor() {
   const brands = q.data ?? [];
   const edit = (key: keyof BrandProfile, value: string) => setProfile((p) => p ? { ...p, [key]: key === 'colors' ? value.split(',').map((x) => x.trim()) : value } : p);
   return <div className="card space-y-4 p-5">
-    <div><h3 className="font-semibold">Perfis de empresas</h3><p className="text-xs text-slate-500">Cadastros persistentes. O estúdio institucional utiliza as marcas cadastradas. As campanhas farmacêuticas continuam com regras próprias.</p></div>
+    <div><h3 className="font-semibold">Perfis de empresas</h3><p className="text-xs text-slate-500">Cadastre a identidade visual e as informações oficiais usadas nas campanhas da equipe.</p></div>
     <div className="flex flex-wrap gap-2">{brands.map((b) => <button type="button" key={b.id} className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50" onClick={() => setProfile({ ...b })}>{b.name}</button>)}
-    {admin && <button type="button" className="rounded border border-slate-300 px-3 py-2 text-sm" onClick={() => setProfile({ id:'nova-marca', name:'', description:'', website:'', logoUrl:'', colors:['#09252D'], tone:'', guidelines:'', logoDataUri:'' })}>+ Nova marca</button>}</div>
-    {profile && <div className="grid gap-3 md:grid-cols-2">
-      {(['id','name','description','website','logoUrl','tone','guidelines'] as const).map((key) => <label key={key} className="text-xs font-semibold text-slate-700">{({id:'Identificador',name:'Nome',description:'Descrição',website:'Site',logoUrl:'URL da logo',tone:'Tom de voz',guidelines:'Diretrizes'} as const)[key]}<input className="mt-1 w-full rounded border border-slate-300 p-2 text-sm font-normal" value={profile[key] ?? ''} disabled={!admin} onChange={(e) => edit(key,e.target.value)} /></label>)}
+    {admin && <button type="button" className="rounded border border-slate-300 px-3 py-2 text-sm" onClick={() => setProfile({ id:`brand-${crypto.randomUUID().slice(0,12)}`, name:'', description:'', website:'', logoUrl:'', colors:['#09252D'], tone:'', guidelines:'', fontFamily:'Inter', logoDataUri:'' })}>+ Nova marca</button>}</div>
+    {profile && <form className="grid gap-3 md:grid-cols-2" onSubmit={e=>{e.preventDefault();save.mutate();}}>
+      {(['id','name','description','website','logoUrl','tone','guidelines'] as const).filter(key=>key!=='id'||config?.appMode==='demo').map((key) => <label key={key} className="text-xs font-semibold text-slate-700">{({id:'Identificador',name:'Nome',description:'Descrição',website:'Site',logoUrl:'Referência da logo (opcional)',tone:'Tom de voz',guidelines:'Diretrizes'} as const)[key]}{key==='description'||key==='guidelines'?<textarea required={key==='description'} minLength={key==='description'?10:0} maxLength={key==='description'?1500:3000} rows={3} className="input mt-1 font-normal" value={profile[key]??''} disabled={!admin} onChange={e=>edit(key,e.target.value)}/>:<input required={['name','tone'].includes(key)} minLength={key==='tone'?3:2} maxLength={key==='name'?100:key==='tone'?300:500} type={key==='website'||key==='logoUrl'?'url':'text'} className="input mt-1 font-normal" value={profile[key]??''} disabled={!admin} onChange={e=>edit(key,e.target.value)}/>} </label>)}
       <label className="text-xs font-semibold text-slate-700">Logo original (PNG, JPEG ou WebP — até 1 MB)
         <input className="mt-1 w-full text-sm font-normal" type="file" accept="image/png,image/jpeg,image/webp" disabled={!admin} onChange={async (e) => {
           const file = e.target.files?.[0];
@@ -140,9 +140,14 @@ function BrandProfilesEditor() {
         }} />
         {profile.logoDataUri && <img alt={`Logo de ${profile.name}`} src={profile.logoDataUri} className="mt-2 h-16 max-w-48 object-contain" />}
       </label>
+      <label className="text-xs font-semibold text-slate-700">Fonte da marca
+        <select className="mt-1 w-full rounded border border-slate-300 p-2 text-sm font-normal" value={profile.fontFamily ?? 'Inter'} disabled={!admin} onChange={(e) => edit('fontFamily',e.target.value)}>
+          {['Inter','Poppins','Nunito','Arial'].map((f)=><option key={f} value={f}>{f}</option>)}
+        </select>
+      </label>
       <label className="text-xs font-semibold text-slate-700">Cores HEX (separadas por vírgula)<input className="mt-1 w-full rounded border border-slate-300 p-2 text-sm font-normal" value={profile.colors.join(', ')} disabled={!admin} onChange={(e) => edit('colors',e.target.value)} /></label>
-      {admin && <button type="button" disabled={save.isPending} className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" onClick={() => save.mutate()}>Salvar marca</button>}
-    </div>}
+      {admin && <button type="submit" disabled={save.isPending} className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Salvar marca</button>}
+    </form>}
   </div>;
 }
 
@@ -368,3 +373,5 @@ function DemoTab() {
     </div>
   );
 }
+
+export function AdminPage(){const {config}=useAuth();return config?.appMode==='demo'?<DemoAdminPage/>:<PageShell><PageHeader title="Marcas e identidade" subtitle="Adicione as empresas com que sua equipe trabalha. Use somente informações e arquivos autorizados."/><BrandProfilesEditor/></PageShell>;}

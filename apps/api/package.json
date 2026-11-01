@@ -8,7 +8,9 @@
     "start": "tsx src/server.ts",
     "seed": "tsx src/db/seed-cli.ts",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "restore": "tsx src/db/restore-cli.ts",
+    "recover-owner": "tsx src/db/recover-owner-cli.ts"
   },
   "dependencies": {
     "@cf/shared": "workspace:*",

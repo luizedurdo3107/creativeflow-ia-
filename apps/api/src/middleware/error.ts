@@ -1,8 +1,10 @@
 import type { NextFunction, Request, Response } from 'express';
+import { MulterError } from 'multer';
 import { ZodError } from 'zod';
 import { HttpError } from '../utils/errors';
 
 export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
+  if (err instanceof MulterError) return res.status(400).json({error:err.code==='LIMIT_FILE_SIZE'?'O arquivo deve ter até 5 MB.':'Não foi possível receber o arquivo.'});
   if (err instanceof ZodError) {
     return res.status(400).json({ error: 'Dados inválidos.', details: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })) });
   }

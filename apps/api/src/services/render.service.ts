@@ -14,7 +14,7 @@ import { env } from '../config/env';
 const require = createRequire(import.meta.url);
 
 let fontCss: string | null = null;
-function fontFaces(): string {
+export function fontFaces(): string {
   if (fontCss) return fontCss;
   const faces: string[] = [];
   const add = (pkg: string, family: string, weights: number[]) => {
@@ -26,9 +26,9 @@ function fontFaces(): string {
       faces.push(`@font-face{font-family:'${family}';font-weight:${w};font-style:normal;src:url(data:font/woff2;base64,${b64}) format('woff2');}`);
     }
   };
-  add('@fontsource/nunito', 'Nunito', [600, 700, 800]);
+  add('@fontsource/nunito', 'Nunito', [400, 600, 700, 800]);
   add('@fontsource/poppins', 'Poppins', [400, 500, 600, 700, 800]);
-  add('@fontsource/inter', 'Inter', [400, 500, 600, 700]);
+  add('@fontsource/inter', 'Inter', [400, 500, 600, 700, 800]);
   fontCss = faces.join('\n');
   return fontCss;
 }
@@ -89,7 +89,7 @@ export async function renderInstitutionalPng(svg: string, width: number, height:
   const b = await browser();
   const page = await b.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
   try {
-    await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0}svg{display:block}</style></head><body>${svg}</body></html>`, { waitUntil: 'load' });
+    await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>${fontFaces()}html,body{margin:0;padding:0}svg{display:block}</style></head><body>${svg}</body></html>`, { waitUntil: 'load' });
     await page.evaluate(() => document.fonts.ready);
     return await page.screenshot({type:'png', clip: {x:0,y:0,width,height}});
   } finally { await page.close(); }

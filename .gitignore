@@ -1,8 +1,17 @@
 node_modules
 dist
 .env
+.env.*
+!.env.example
 data/*.db
 !data/ofertas-exemplo.csv
 data/pglite
 data/exports
 *.log
+
+# Arquivos criados pela IA (podem ser grandes e conter materiais internos)
+data/ai-artworks/
+
+# Dados privados do espaço de trabalho real
+data/product/
+data/demo/

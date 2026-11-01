@@ -7,6 +7,17 @@ create table if not exists users (
   role text not null
 );
 
+alter table users add column if not exists password_hash text;
+alter table users add column if not exists active boolean not null default true;
+create unique index if not exists users_email_unique on users (lower(email));
+create table if not exists workspace_bootstrap (id integer primary key check(id=1),owner_id text,created_at timestamptz not null default now());
+create table if not exists auth_sessions (token_hash text primary key,user_id text not null,expires_at timestamptz not null,created_at timestamptz not null default now());
+create index if not exists auth_sessions_user on auth_sessions(user_id);
+create table if not exists team_invitations (id text primary key,token_hash text unique not null,email text not null,name text not null,role text not null,created_by text not null,expires_at timestamptz not null,used_at timestamptz,created_at timestamptz not null default now());
+alter table workspace_bootstrap add column if not exists owner_id text;
+alter table team_invitations add column if not exists purpose text not null default 'invite';
+create table if not exists ai_daily_usage (day text not null,kind text not null,calls integer not null default 0,primary key(day,kind));
+
 create table if not exists pracas (
   code text primary key,
   name text not null
@@ -160,6 +171,7 @@ create table if not exists institutional_campaigns (
   data jsonb not null,
   copies jsonb not null,
   ai_mode text not null default 'template',
+  artworks jsonb not null default '{}'::jsonb,
   status text not null default 'rascunho',
   created_by text not null,
   reviewed_by text,
@@ -168,6 +180,14 @@ create table if not exists institutional_campaigns (
   updated_at timestamptz not null default now(),
   reviewed_at timestamptz
 );
+alter table institutional_campaigns add column if not exists artworks jsonb not null default '{}'::jsonb;
+alter table institutional_campaigns add column if not exists render_version integer not null default 1;
+alter table institutional_campaigns add column if not exists designs jsonb not null default '{}'::jsonb;
+alter table institutional_campaigns add column if not exists channel_texts jsonb not null default '{}'::jsonb;
+alter table institutional_campaigns add column if not exists archived_at timestamptz;
+alter table institutional_campaigns add column if not exists catalog_snapshot jsonb;
+alter table institutional_campaigns add column if not exists revision integer not null default 1;
+alter table institutional_campaigns add column if not exists last_edited_by text;
 create index if not exists inst_brand_status on institutional_campaigns (brand_id, status);
 create table if not exists institutional_campaign_events (
   id text primary key,

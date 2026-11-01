@@ -5,3 +5,8 @@ data
 .env
 *.log
 .git
+
+.env.*
+!.env.example
+work
+outputs

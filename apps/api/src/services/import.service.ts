@@ -57,7 +57,7 @@ export function parseDate(v: unknown): string | null {
   return null;
 }
 
-async function readRows(buffer: Buffer, filename: string): Promise<Record<string, unknown>[]> {
+export async function readRows(buffer: Buffer, filename: string): Promise<Record<string, unknown>[]> {
   if (/\.xlsx$/i.test(filename)) {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buffer as unknown as ArrayBuffer);

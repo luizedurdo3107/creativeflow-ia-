@@ -1,4 +1,5 @@
 import { SEED_PRACAS, SEED_PRODUCTS, SEED_SEGMENTS, SEED_USERS, buildSeedOffers } from '@cf/shared';
+import { isDemo } from '../config/env';
 import { db } from './client';
 import { upsertOffer, upsertPraca, upsertProduct, upsertSegment } from '../models/catalog.model';
 import { upsertUser } from '../models/user.model';
@@ -20,6 +21,7 @@ export async function seedDatabase(opts: { reset?: boolean; today?: string } = {
 }
 
 export async function seedIfEmpty() {
+  if (!isDemo()) return;
   const { rows } = await db().query<{ n: number }>('select count(*)::int as n from users');
   if (Number(rows[0].n) === 0) await seedDatabase();
 }

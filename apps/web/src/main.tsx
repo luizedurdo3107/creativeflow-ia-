@@ -26,11 +26,15 @@ import { CampaignsPage } from './pages/Campaigns';
 import { CatalogPage } from './pages/Catalog';
 import { DashboardPage } from './pages/Dashboard';
 import { LoginPage } from './pages/Login';
+import { BrandCatalogPage } from './pages/BrandCatalog';
 import { BrandCampaignsPage } from './pages/BrandCampaigns';
 import { NewCampaignPage } from './pages/NewCampaign';
+import { SettingsPage } from './pages/Settings';
 import { StudioPage } from './pages/Studio';
 
 const qc = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1, staleTime: 5_000 } } });
+
+function Legacy({children,to}:{children:React.ReactNode;to:string}){const {config}=useAuth();return config?.appMode==='demo'?<>{children}</>:<Navigate to={to} replace/>;}
 
 function Protected() {
   const { user, loading } = useAuth();
@@ -49,13 +53,15 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/entrar" element={<LoginPage />} />
               <Route element={<Protected />}>
                 <Route path="/" element={<DashboardPage />} />
-                <Route path="/campanhas" element={<CampaignsPage />} />
-                <Route path="/campanhas/nova" element={<NewCampaignPage />} />
-                <Route path="/campanhas/:id" element={<CampaignPage />} />
-                <Route path="/pecas/:id" element={<StudioPage />} />
+                <Route path="/campanhas" element={<Legacy to="/marcas/campanhas"><CampaignsPage /></Legacy>} />
+                <Route path="/campanhas/nova" element={<Legacy to="/marcas/campanhas"><NewCampaignPage /></Legacy>} />
+                <Route path="/campanhas/:id" element={<Legacy to="/marcas/campanhas"><CampaignPage /></Legacy>} />
+                <Route path="/pecas/:id" element={<Legacy to="/marcas/campanhas"><StudioPage /></Legacy>} />
+                <Route path="/marcas/catalogo" element={<BrandCatalogPage />} />
                 <Route path="/marcas/campanhas" element={<BrandCampaignsPage />} />
                 <Route path="/aprovacoes" element={<ApprovalsPage />} />
-                <Route path="/catalogo" element={<CatalogPage />} />
+                <Route path="/catalogo" element={<Legacy to="/marcas/catalogo"><CatalogPage /></Legacy>} />
+                <Route path="/configuracoes" element={<SettingsPage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>

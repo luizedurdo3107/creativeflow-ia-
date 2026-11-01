@@ -1,32 +1,69 @@
-CreativeFlow AI — entrega da branch feat/semifinal-lumos
+CreativeFlow — editor manual e canais — 31/10/2026
+Branch: feat/semifinal-lumos. Sem stage, commit, push ou merge.
 
-INCLUÍDO:
-- Projeto original inteiro, histórico Git local e branch de trabalho separada.
-- Cadastro de marcas com armazenamento persistente, upload de logo local PNG/JPEG/WebP.
-- Criação e listagem de campanhas institucionais com briefing validado.
-- IA generativa quando configurada, fallback declarado quando indisponível.
-- Preview de feed, story e banner com marca, textos e logo; edição de cópia.
-- Aprovação por revisor distinto, revogada por edição; log de operações.
-- ZIP de campanha aprovado com PNGs/legenda/manifesto via Chromium.
-- Testes de API escritos e exemplos de artes PNG/SVG.
+CONCLUÍDO
+- Modo produto com login real e dados próprios; demonstração isolada.
+- Editor manual com arraste, redimensionamento, posição, tamanho, cores,
+  fonte, alinhamento, visibilidade, desfazer, refazer e descarte de ajustes.
+- Textos editáveis sem IA e composição independente por formato.
+- Upload de imagem PNG/JPEG, zoom, enquadramento e sobreposição.
+- Três composições e três direções de imagem com assunto editável.
+- Instagram, Facebook, LinkedIn, WhatsApp, e-mail e site.
+- Textos próprios por canal, incluindo assunto e corpo de e-mail.
+- Exportação com pastas por destino, PNGs, textos e manifesto.
+- Alterações revogam aprovação; controle de versão evita sobrescrita.
+- Composição anterior preservada até abertura explícita no novo editor.
+- Catálogo próprio, CSV/XLSX, equipe, convites, recuperação e backup.
 
-VERIFICAÇÕES EFETUADAS NESTE AMBIENTE:
-- Verificação sintática TypeScript/TSX: sem erros sintáticos.
-- SVG de exemplo: gerados, convertidos para PNG e XML validado.
-- Git: alterações isoladas na branch, sem remote e sem modificar main.
+VALIDAÇÃO FINAL
+- 122 testes passaram: 68 compartilhados e 54 da API.
+- TypeScript, build de produção e git diff --check passaram.
+- Testes incluem exportação real de PNGs, imagens próprias, canais,
+  proteção de permissões, concorrência, revisão e restauração de backup.
+- Navegador com build compilado e banco isolado: login, arraste real,
+  redimensionamento pela alça, teclado, desfazer/refazer, descarte,
+  texto salvo, upload, seleção de canal e e-mail específico salvo.
+- Editor vertical conferido em 390×844, desktop em 1440×1000.
+- Sem rolagem horizontal no teste móvel e sem erros no console.
+- Cloudflare real: token e acesso ao modelo verificados em etapa anterior;
+  textos e imagem de Feed do Norya gerados e salvos de fato.
+- Na etapa final, QA com credenciais Cloudflare desabilitadas,
+  sem novas chamadas de geração. A fotografia testada já estava salva.
+- Docker e recuperação interativa do proprietário não executados.
 
-PENDENTE DE VALIDAÇÃO NO COMPUTADOR DO TIME:
-- Instalar pacotes via pnpm (registro npm inacessível neste ambiente).
-- Executar pnpm typecheck, pnpm test e pnpm build.
-- Testar a API e o ciclo de exportação PNG/ZIP em execução real.
-- Conferir visual e conteúdo real após anexar a logo autorizada.
-- Testar a IA externa com uma chave privada de desenvolvimento.
-- Publicar uma versão de testes em ambiente seguro, após confirmar regras do hackathon.
+OPERAÇÃO E LIMITES
+- Abra http://localhost:5173 e entre com sua conta.
+- Selecione a campanha, edite nas abas Arte/Texto/Imagem e salve.
+- Escolha e salve os canais antes de enviar para revisão independente.
+- Não há publicação automática ou envio automático de e-mails/mensagens.
+- Não foram contratados serviços, feitos upgrades ou publicada hospedagem.
+- Mantenha Workers Free. Limites locais: 10 imagens e 20 textos por dia;
+  esses contadores não medem a cota compartilhada da conta Cloudflare.
+- Dados antigos, banco do produto e credenciais existentes preservados.
+- Fonte no ZIP, sem .env privado, .git, node_modules ou bancos de execução.
 
-NÃO IMPLEMENTADO:
-- Integração com banco interno, ERP ou APIs privadas da Pague Menos.
-- Publicação automática em redes sociais.
-- Autenticação empresarial; perfis atuais são usuários de demonstração.
-- Métricas reais de economia de tempo ou comprovação de conformidade regulatória.
+Leia README.md e docs/PRODUTO.md.
 
-Leia docs/SEMIFINAL-LUMOS-README.md antes de usar.
+
+ATUALIZAÇÃO LUMOS E VÍDEO — 31/10/2026
+- Paleta oficial aplicada à interface e ao cadastro real da marca.
+- Campanha Norya — Aprender conecta | Demo Lumos, ID inst_P2CyCTw1.
+- Feed, Story e Banner com imagem; Instagram, LinkedIn, WhatsApp e E-mail.
+- Textos revisados e específicos por canal; campanha em revisão, versão 15.
+- Códigos HEX editáveis; prompt de imagem sem nome da marca no contexto.
+- 122 testes, typecheck, build e diff --check passaram novamente.
+- Navegador: HEX salvo, edição por teclado, desfazer, três formatos,
+  mensagens salvas e envio à revisão; 390×844 sem overflow horizontal.
+- MP4 demonstrativo editado a partir de capturas reais, não contínuo.
+  1920×1080, H.264/AAC, cerca de 68s, sem narração, com legendas.
+
+
+CAMPANHA CONGRESSO E ARTE PRONTA — 31/10/2026
+- Formato Retrato 4:5, 1080×1350, disponível no produto.
+- Composição Arte pronta preserva a imagem inteira, sem recortar ou
+  duplicar marca e textos. Os textos dentro do arquivo não são camadas.
+- Arte recriada com imagegen a partir da referência fornecida pelo usuário.
+- Campanha inst_ZURjso3A salva no espaço real, rascunho versão 3.
+- Conteúdo e legenda conferidos; Instagram, formato portrait.
+- 124 testes, TypeScript, build e diff passaram. Upload e prévia
+  conferidos no navegador; console sem erros.

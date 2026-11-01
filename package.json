@@ -4,15 +4,20 @@
   "version": "0.1.0",
   "description": "CreativeFlow AI — produção criativa multicanal com governança (Hackabusiness 2026)",
   "scripts": {
-    "dev": "pnpm -r --parallel --filter ./apps/* dev",
+    "dev": "pnpm -r --parallel --filter @cf/api --filter @cf/web dev",
     "dev:api": "pnpm --filter @cf/api dev",
     "dev:web": "pnpm --filter @cf/web dev",
     "build": "pnpm --filter @cf/web build",
     "start": "pnpm --filter @cf/api start",
     "seed": "pnpm --filter @cf/api seed",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "restore:workspace": "pnpm --filter @cf/api restore",
+    "start:product": "pnpm build && NODE_ENV=production APP_MODE=product APP_PUBLIC_URL=http://localhost:3001 pnpm start",
+    "recover:owner": "pnpm --filter @cf/api recover-owner"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "packageManager": "pnpm@10.28.0"
 }

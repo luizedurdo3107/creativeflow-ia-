@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync,openSync,writeFileSync,readFileSync,closeSync,unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { env } from '../config/env';
 import { SCHEMA_SQL } from './schema';
@@ -17,10 +17,11 @@ export interface Db {
 
 let instance: Db | null = null;
 
-export async function createDb(opts: { memory?: boolean } = {}): Promise<Db> {
-  if (!opts.memory && env.databaseUrl) {
+export async function createDb(opts: { memory?: boolean;dataDir?:string;databaseUrl?:string } = {}): Promise<Db> {
+  const databaseUrl=opts.databaseUrl??env.databaseUrl;
+  if (!opts.memory && databaseUrl) {
     const pg = await import('pg');
-    const pool = new pg.default.Pool({ connectionString: env.databaseUrl, ssl: env.databaseUrl.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined });
+    const pool = new pg.default.Pool({ connectionString: databaseUrl, ssl: databaseUrl.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined });
     const db: Db = {
       kind: 'postgres',
       query: async (sql, params) => {
@@ -37,9 +38,15 @@ export async function createDb(opts: { memory?: boolean } = {}): Promise<Db> {
   }
   const { PGlite } = await import('@electric-sql/pglite');
   let pglite: InstanceType<typeof PGlite>;
+  let release=()=>{};
   if (opts.memory) pglite = new PGlite();
   else {
-    const dir = resolve(env.dataDir, 'pglite');
+    const dataRoot=resolve(opts.dataDir??env.dataDir);mkdirSync(dataRoot,{recursive:true});
+    const lock=resolve(dataRoot,'pglite.lock');
+    try{const old=Number(readFileSync(lock,'utf8'));try{process.kill(old,0);throw new Error('Este banco já está aberto por outro processo. Encerre a outra instância antes de iniciar.');}catch(e){if((e as NodeJS.ErrnoException).code!=='ESRCH')throw e;}unlinkSync(lock);}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;}
+    const handle=openSync(lock,'wx',0o600);writeFileSync(handle,String(process.pid));closeSync(handle);
+    release=()=>{try{if(readFileSync(lock,'utf8')===String(process.pid))unlinkSync(lock);}catch{}};
+    const dir = resolve(dataRoot, 'pglite');
     mkdirSync(dir, { recursive: true });
     pglite = new PGlite(dir);
   }
@@ -52,13 +59,12 @@ export async function createDb(opts: { memory?: boolean } = {}): Promise<Db> {
     exec: async (sql) => {
       await pglite.exec(sql);
     },
-    close: () => pglite.close(),
+    close: async () => {try{await pglite.close();}finally{release();}},
   };
-  await db.exec(SCHEMA_SQL);
-  return db;
+  try{await db.exec(SCHEMA_SQL);return db;}catch(error){await db.close().catch(()=>{});throw error;}
 }
 
-export async function initDb(opts: { memory?: boolean } = {}): Promise<Db> {
+export async function initDb(opts: { memory?: boolean;dataDir?:string;databaseUrl?:string } = {}): Promise<Db> {
   instance = await createDb(opts);
   return instance;
 }

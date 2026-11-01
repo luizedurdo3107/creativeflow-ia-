@@ -1,4 +1,4 @@
-import { env } from '../../config/env';
+import { env, isDemo } from '../../config/env';
 import { isLlmConfigured, llmProvider } from './llm';
 import { mockProvider } from './mock';
 import type { AIProvider } from './types';
@@ -17,8 +17,8 @@ export interface AIOutcome<T> {
 export function aiStatus() {
   const configured = env.aiProvider !== 'mock' && isLlmConfigured();
   return {
-    provider: configured ? env.aiProvider : 'mock',
-    mode: configured ? 'ia-generativa' : 'demonstracao',
+    provider: configured ? env.aiProvider : isDemo()?'mock':'nenhum',
+    mode: configured ? 'ia-generativa' : isDemo()?'demonstracao':'nao-configurada',
     requested: env.aiProvider,
   };
 }

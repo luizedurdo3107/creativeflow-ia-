@@ -1,3 +1,5 @@
+import { env, isDemo } from '../config/env';
+import { usageStatus } from '../services/usage.service';
 import { BRAND_VERSION, BRAND_VOICE, COLOR_TOKENS, FONT_TOKENS, FORMATS, RULES, SEED_PRACAS } from '@cf/shared';
 import type { Request, Response } from 'express';
 import { createReadStream, existsSync } from 'node:fs';
@@ -19,6 +21,7 @@ import {
 } from '../models/governance.model';
 import { getUser, listUsers } from '../models/user.model';
 import { aiStatus } from '../services/ai';
+import { imageAIStatus } from '../services/image-ai.service';
 import { listBrandProfiles, upsertBrandProfile } from '../services/brand-profiles.service';
 import { issueToken } from '../services/auth.service';
 import { buildContext } from '../services/context.service';
@@ -63,7 +66,7 @@ export const AuthController = {
 export const SystemController = {
   async status(_req: Request, res: Response) {
     const rules = await getRulesConfig();
-    res.json({ ai: aiStatus(), db: db().kind, today: await getToday(), brandVersion: BRAND_VERSION, rulesVersion: rules.version });
+    res.json({ appMode:env.appMode,freeOnly:env.freeOnly,usage:await usageStatus(), ai: aiStatus(), imageAI: imageAIStatus(), db: db().kind, today: await getToday(), brandVersion: isDemo()?BRAND_VERSION:null, rulesVersion: isDemo()?rules.version:null });
   },
   async brands(_req: Request, res: Response) {
     res.json(await listBrandProfiles());

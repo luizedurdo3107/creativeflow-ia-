@@ -3,6 +3,9 @@
 FROM mcr.microsoft.com/playwright:v1.56.0-noble
 
 ENV NODE_ENV=production \
+    APP_MODE=product \
+    API_HOST=0.0.0.0 \
+    FREE_ONLY=true \
     PORT=3001 \
     DATA_DIR=/app/data \
     PNPM_HOME=/pnpm \

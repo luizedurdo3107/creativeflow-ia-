@@ -10,3 +10,4 @@ export * from './governance';
 export * from './seed-data';
 export * from './messages';
 export * from './semantic';
+export * from './studio';

@@ -1,3 +1,4 @@
+import type { StudioDesign, ChannelId, ChannelTextMap } from '@cf/shared';
 import type {
   Briefing,
   Concept,
@@ -27,8 +28,13 @@ export interface User {
   email: string;
   role: UserRole;
 }
+export interface AppConfig {appMode:'product'|'demo';setupRequired:boolean;freeOnly:boolean;}
+export interface UsageStatus {day:string;resetAt:string;freeOnly:boolean;images:{used:number;limit:number};text:{used:number;limit:number};note:string;}
+export interface TeamMember extends User {active:boolean;owner:boolean;}
 export interface SystemStatus {
-  ai: { provider: string; mode: 'ia-generativa' | 'demonstracao'; requested: string };
+  appMode:'product'|'demo';freeOnly:boolean;usage:UsageStatus;
+  ai: { provider: string; mode: 'ia-generativa' | 'demonstracao' | 'nao-configurada'; requested: string };
+  imageAI: {provider:string;model:string;configured:boolean;mode:string};
   db: string;
   today: string;
   brandVersion: string;
@@ -208,19 +214,24 @@ export interface BrandProfile {
   logoDataUri?: string;
   colors: string[];
   tone: string;
+  fontFamily?: 'Inter' | 'Poppins' | 'Nunito' | 'Arial';
   guidelines: string;
 }
 
-export type InstitutionalFormat = 'feed' | 'story' | 'banner';
+export interface BrandCatalogItem {id:string;kind:'produto'|'servico';name:string;description:string;priceCents:number|null;conditions:string;sourceNotes:string;active:boolean;}
+export interface BrandCatalogImport {total:number;valid:number;errors:{line:number;message:string}[];items:BrandCatalogItem[];saved:boolean;}
+
+export type InstitutionalFormat = 'feed' | 'portrait' | 'story' | 'banner';
 export interface InstitutionalInput {
-  brandId: string; name: string; objective: string; audience: string; keyMessage: string;
-  cta: string; sourceNotes: string; formats: InstitutionalFormat[]; confirmed: boolean;
+  catalogItemId?: string; brandId: string; name: string; objective: string; audience: string; keyMessage: string;
+  copyMode?:'ai'|'briefing'; cta: string; sourceNotes: string; artDirection?: string; formats: InstitutionalFormat[]; channels?:ChannelId[]; confirmed: boolean;
 }
 export interface InstitutionalCopy { headline: string; subtitle: string; caption: string; cta: string; }
 export interface InstitutionalCampaign {
   id: string; brandId: string; brand: BrandProfile; name: string; input: InstitutionalInput;
-  copies: InstitutionalCopy; aiMode: string; status: 'rascunho'|'aprovada'|'reprovada';
-  createdBy: string; reviewedBy: string|null; reviewNote: string|null;
+  renderVersion:number; designs:Partial<Record<InstitutionalFormat,StudioDesign>>; channelTexts:ChannelTextMap;
+  catalogItem: BrandCatalogItem|null; copies: InstitutionalCopy; aiMode: string; artworks: Partial<Record<InstitutionalFormat,{ filename:string; model:string; createdAt:string; promptHash:string; source:string }>>; status: 'rascunho'|'em_revisao'|'aprovada'|'reprovada';
+  revision: number; lastEditedBy: string; createdBy: string; reviewedBy: string|null; reviewNote: string|null;
   createdAt: string; updatedAt: string; reviewedAt: string|null;
 }
 
@@ -255,12 +266,12 @@ export class ApiError extends Error {
 }
 
 async function req<T>(method: string, path: string, body?: unknown, isForm = false): Promise<T> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {'x-cf-client':'creativeflow-web'};
   const token = getToken();
   if (token) headers.authorization = `Bearer ${token}`;
   if (body !== undefined && !isForm) headers['content-type'] = 'application/json';
   const res = await fetch(`/api${path}`, { method, headers, body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body) });
-  if (res.status === 401 && !path.startsWith('/auth')) {
+  if (res.status === 401 && !path.startsWith('/auth') && path!=='/me') {
     setToken(null);
     if (!location.pathname.startsWith('/entrar')) location.href = '/entrar';
   }
@@ -287,19 +298,55 @@ async function download(path: string, fallbackName: string) {
 }
 
 export const api = {
+  backupWorkspace:()=>download('/workspace/backup','creativeflow-backup.zip'),
+  authConfig:()=>req<AppConfig>('GET','/auth/config'),
+  passwordLogin:(email:string,password:string)=>req<{user:User}>('POST','/auth/login',{email,password}),
+  setupAccount:(name:string,email:string,password:string)=>req<{user:User}>('POST','/auth/setup',{name,email,password}),
+  acceptInvitation:(token:string,password:string)=>req<{user:User}>('POST','/auth/accept',{token,password}),
+  logout:()=>req<{ok:boolean}>('POST','/auth/logout',{}),
+  changePassword:(currentPassword:string,newPassword:string)=>req<{user:User}>('POST','/account/password',{currentPassword,newPassword}),
+  team:()=>req<TeamMember[]>('GET','/team'),
+  inviteMember:(data:{name:string;email:string;role:User['role'];reset?:boolean})=>req<{url:string;expiresInHours:number}>('POST','/team/invitations',data),
+  updateMember:(id:string,data:{role:User['role'];active:boolean})=>req<{ok:boolean}>('PATCH',`/team/${id}`,data),
+  usage:()=>req<UsageStatus>('GET','/system/usage'),
   users: () => req<User[]>('GET', '/auth/users'),
   login: (userId: string) => req<{ token: string; user: User }>('POST', '/auth/login', { userId }),
   me: () => req<User>('GET', '/me'),
   status: () => req<SystemStatus>('GET', '/system/status'),
+  updateInstitutionalDesign:(id:string,format:InstitutionalFormat,design:StudioDesign,copies:InstitutionalCopy,baseRevision:number)=>req<InstitutionalCampaign>('PATCH',`/institutional/${id}/design/${format}`,{design,copies,baseRevision}),
+  updateInstitutionalDistribution:(id:string,channels:ChannelId[],formats:InstitutionalFormat[],channelTexts:ChannelTextMap,baseRevision:number)=>req<InstitutionalCampaign>('PATCH',`/institutional/${id}/distribution`,{channels,formats,channelTexts,baseRevision}),
+  uploadInstitutionalBackground:(id:string,format:InstitutionalFormat,file:File,baseRevision:number)=>{const data=new FormData();data.append('file',file);data.append('baseRevision',String(baseRevision));return req<InstitutionalCampaign>('POST',`/institutional/${id}/background/${format}`,data,true);},
+  updateInstitutionalBriefing:(id:string,input:InstitutionalInput,baseRevision:number)=>req<InstitutionalCampaign>('PATCH',`/institutional/${id}/briefing`,{input,baseRevision}),
+  submitInstitutional:(id:string,baseRevision:number)=>req<InstitutionalCampaign>('POST',`/institutional/${id}/submit`,{baseRevision}),
+  archiveInstitutional:(id:string)=>req<{ok:boolean}>('POST',`/institutional/${id}/archive`,{}),
+  archivedInstitutional:()=>req<InstitutionalCampaign[]>('GET','/institutional/archived'),
+  restoreArchivedInstitutional:(id:string)=>req<InstitutionalCampaign>('POST',`/institutional/${id}/restore-archive`,{}),
+  syncInstitutionalReferences:(id:string,baseRevision:number)=>req<InstitutionalCampaign>('POST',`/institutional/${id}/sync-references`,{baseRevision}),
   institutional: () => req<InstitutionalCampaign[]>('GET', '/institutional'),
   createInstitutional: (data: InstitutionalInput) => req<InstitutionalCampaign>('POST', '/institutional', data),
   getInstitutional: (id: string) => req<InstitutionalCampaign>('GET', `/institutional/${id}`),
-  institutionalAudit: (id: string) => req<{actorId:string;action:string;details:Record<string,unknown>;createdAt:string}[]>('GET',`/institutional/${id}/audit`),
-  generateInstitutional: (id: string) => req<InstitutionalCampaign>('POST', `/institutional/${id}/generate`),
-  updateInstitutionalCopy: (id: string, data: Partial<InstitutionalCopy>) => req<InstitutionalCampaign>('PATCH', `/institutional/${id}/copy`, data),
-  reviewInstitutional: (id: string, decision: 'aprovada'|'reprovada', note: string) => req<InstitutionalCampaign>('POST', `/institutional/${id}/review`, {decision,note}),
+  institutionalAudit: (id: string) => req<{actorId:string;actorName?:string;action:string;details:Record<string,unknown>;createdAt:string}[]>('GET',`/institutional/${id}/audit`),
+  generateInstitutional: (id: string, baseRevision: number) => req<InstitutionalCampaign>('POST', `/institutional/${id}/generate`, {baseRevision}),
+  proposeInstitutionalEdit: (id: string, instruction: string, baseRevision: number) => req<{copy:InstitutionalCopy;baseRevision:number;provider:string}>('POST', `/institutional/${id}/ai-edit`, {instruction,baseRevision}),
+  generateInstitutionalArt: (id: string, format: InstitutionalFormat, secret: string) => {
+    const token = getToken();
+    return fetch(`/api/institutional/${id}/art/${format}`,{method:'POST',headers:{
+      ...(token ? {authorization:`Bearer ${token}`} : {}),
+      'x-image-generation-secret':secret,'x-cf-client':'creativeflow-web',
+    }}).then(async (res) => {
+      const payload = await res.json() as InstitutionalCampaign & {error?:string};
+      if (!res.ok) throw new ApiError(res.status,payload.error || `Falha HTTP ${res.status}`);
+      return payload;
+    });
+  },
+  updateInstitutionalCopy: (id: string, data: Partial<InstitutionalCopy> & {baseRevision?:number}) => req<InstitutionalCampaign>('PATCH', `/institutional/${id}/copy`, data),
+  reviewInstitutional: (id: string, decision: 'aprovada'|'reprovada', note: string, baseRevision: number) => req<InstitutionalCampaign>('POST', `/institutional/${id}/review`, {decision,note,baseRevision}),
   previewInstitutional: (id: string, format: InstitutionalFormat) => req<{svg: string; status: string}>('GET', `/institutional/${id}/preview/${format}`),
   exportInstitutional: (id: string) => download(`/institutional/${id}/export`, `${id}-aprovado.zip`),
+  brandCatalog:(brandId:string)=>req<BrandCatalogItem[]>('GET',`/brands/${brandId}/catalog`),
+  saveBrandCatalogItem:(brandId:string,item:BrandCatalogItem)=>req<BrandCatalogItem>('PUT',`/brands/${brandId}/catalog`,item),
+  importBrandCatalog:(brandId:string,file:File,dryRun:boolean)=>{const data=new FormData();data.append('file',file);return req<BrandCatalogImport>('POST',`/brands/${brandId}/catalog/import?dryRun=${dryRun?1:0}`,data,true);},
+  downloadBrandCatalogTemplate:(brandId:string)=>download(`/brands/${brandId}/catalog/template.csv`,'catalogo-marca.csv'),
   brandProfiles: () => req<BrandProfile[]>('GET', '/system/brand-profiles'),
   saveBrandProfile: (profile: BrandProfile) => req<BrandProfile>('PUT', '/system/brand-profiles', profile),
   brand: () => req<{ version: string; colors: Record<string, string>; fonts: Record<string, { family: string }>; voice: { name: string; tone: string[]; doExamples: string[]; dontExamples: string[] }; rules: RuleDefinition[] }>('GET', '/system/brand'),

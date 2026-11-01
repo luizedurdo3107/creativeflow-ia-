@@ -1,6 +1,8 @@
 import type { UserRole } from '@cf/shared';
 import type { NextFunction, Request, Response } from 'express';
 import type { UserRow } from '../models/user.model';
+import { isDemo } from '../config/env';
+import { sessionToken, userForSession } from '../services/accounts.service';
 import { verifyToken } from '../services/auth.service';
 import { forbidden, HttpError } from '../utils/errors';
 
@@ -15,6 +17,7 @@ declare global {
 
 export async function authenticate(req: Request, _res: Response, next: NextFunction) {
   try {
+    if(!isDemo()){req.user=await userForSession(sessionToken(req));return next();}
     const header = req.headers.authorization ?? '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : (req.query.token as string | undefined);
     if (!token) throw new HttpError(401, 'Entre para continuar.');

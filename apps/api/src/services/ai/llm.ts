@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { env } from '../../config/env';
+import { reserveAICall, requireFreeTextProvider } from '../usage.service';
+import { HttpError } from '../../utils/errors';
+import { credentialProvided, env, isDemo } from '../../config/env';
 import { conceptSystemPrompt, conceptUserPrompt, critiqueSystemPrompt, editSystemPrompt, editUserPrompt, semanticSystemPrompt, semanticUserPrompt } from './prompts';
 import { LenientConceptSchema, LenientCritiqueSchema, LenientEditSchema, LenientSemanticSchema } from './lenient';
 import type { AIProvider } from './types';
@@ -10,7 +12,8 @@ import type { AIProvider } from './types';
  *  - openai        → api.openai.com (ou compatível via OPENAI_BASE_URL)
  *  - azure-openai  → Azure OpenAI (deployment próprio, dados na região escolhida)
  *  - anthropic     → Claude (Messages API, saída por tool use)
- * Toda saída é validada com Zod no servidor; se falhar, o chamador cai no mock e registra.
+ * Toda saída é validada com Zod no servidor. O produto devolve a falha;
+ * somente a demonstração pode recorrer aos dados de exemplo.
  */
 
 type Part = { type: 'text'; text: string } | { type: 'image'; base64: string; mime: string };
@@ -50,19 +53,22 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const TRANSIENT = [429, 500, 502, 503, 504];
 
 async function callOpenAICompatible<T>(c: JsonCall<T>, azure: boolean): Promise<T> {
+  requireFreeTextProvider();
   const url = azure
     ? `${env.azure.endpoint.replace(/\/$/, '')}/openai/deployments/${env.azure.deployment}/chat/completions?api-version=${env.azure.apiVersion}`
-    : `${env.openai.baseUrl.replace(/\/$/, '')}/chat/completions`;
+    : env.aiProvider === 'cloudflare'
+      ? `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.cloudflare.accountId)}/ai/v1/chat/completions`
+      : `${env.openai.baseUrl.replace(/\/$/, '')}/chat/completions`;
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   if (azure) headers['api-key'] = env.azure.key;
-  else headers.authorization = `Bearer ${env.openai.key}`;
+  else headers.authorization = `Bearer ${env.aiProvider === 'cloudflare' ? env.cloudflare.token : env.openai.key}`;
   const content = c.user.map((p) => (p.type === 'text' ? { type: 'text', text: p.text } : { type: 'image_url', image_url: { url: `data:${p.mime};base64,${p.base64}` } }));
   const schema = jsonSchemaOf(c.schema as z.ZodTypeAny);
-  const models = azure ? [''] : [env.openai.model, ...env.openai.fallbackModels];
+  const models = azure ? [''] : env.aiProvider === 'cloudflare' ? [env.cloudflare.textModel] : [env.openai.model, ...env.openai.fallbackModels];
 
   // Provedores "compatíveis com OpenAI" (Gemini, Groq, modelos locais…) nem sempre aceitam
   // json_schema completo. Tenta do mais rígido ao mais simples; o Zod valida no fim de qualquer jeito.
-  const allModes: FormatMode[] = ['json_schema', 'json_object', 'texto'];
+  const allModes: FormatMode[] = env.aiProvider === 'cloudflare' ? ['json_object', 'texto'] : ['json_schema', 'json_object', 'texto'];
   const modes: FormatMode[] = preferredMode ? [preferredMode, ...allModes.filter((m) => m !== preferredMode)] : allModes;
   const errors: string[] = [];
 
@@ -76,10 +82,10 @@ async function callOpenAICompatible<T>(c: JsonCall<T>, azure: boolean): Promise<
       const body: Record<string, unknown> = {
         messages: [
           { role: 'system', content: system },
-          { role: 'user', content },
+          { role: 'user', content: env.aiProvider === 'cloudflare' && c.user.every((p)=>p.type === 'text') ? c.user.map((p)=>p.type === 'text' ? p.text : '').join('\n') : content },
         ],
         temperature: 0.4,
-        max_tokens: Math.max(c.maxTokens ?? 2000, 8192),
+        max_tokens: env.aiProvider === 'cloudflare' ? Math.min(c.maxTokens ?? 2000, isDemo()?2500:800) : Math.max(c.maxTokens ?? 2000, 8192),
       };
       if (mode === 'json_schema') body.response_format = { type: 'json_schema', json_schema: { name: c.name, schema, strict: false } };
       if (mode === 'json_object') body.response_format = { type: 'json_object' };
@@ -88,23 +94,40 @@ async function callOpenAICompatible<T>(c: JsonCall<T>, azure: boolean): Promise<
       // Sobrecarga momentânea (503/429): espera e tenta de novo antes de desistir do modelo.
       let res: Response | null = null;
       let timedOut = false;
-      for (const wait of [0, 1500, 4000]) {
+      for (const wait of isDemo() ? [0, 1500, 4000] : [0]) {
         if (wait) await sleep(wait);
+        if(!isDemo()){if(Buffer.byteLength(JSON.stringify(body),'utf8')>16000)throw new HttpError(400,'Reduza o briefing e as diretrizes da marca para gerar os textos.');await reserveAICall('text');}
         try {
           res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(env.aiTimeoutMs) });
         } catch (e) {
+          if (env.aiProvider === 'cloudflare' && !isDemo()) {
+            const timeout = e instanceof Error && ['TimeoutError', 'AbortError'].includes(e.name);
+            throw new HttpError(timeout ? 504 : 502, timeout
+              ? 'A Cloudflare demorou demais para responder. Tente novamente mais tarde; o briefing foi preservado.'
+              : 'Não foi possível conectar à Cloudflare. Verifique a conexão e tente novamente; o briefing foi preservado.');
+          }
           // Tempo esgotado ou rede instável: não adianta repetir o mesmo modelo várias vezes.
           errors.push(`${model || 'deployment'}: sem resposta em ${Math.round(env.aiTimeoutMs / 1000)}s (${String(e).slice(0, 80)})`);
           timedOut = true;
           break;
         }
-        if (!TRANSIENT.includes(res.status)) break;
+        if (!TRANSIENT.includes(res.status) || (env.aiProvider === 'cloudflare' && res.status === 429)) break;
       }
       if (timedOut) {
         overloaded = true; // tenta o próximo modelo reserva
         break;
       }
       if (!res!.ok) {
+        if (env.aiProvider === 'cloudflare' && !isDemo()) {
+          if ([401, 403].includes(res!.status)) throw new HttpError(502,
+            'A Cloudflare recusou a credencial de IA. O administrador precisa conferir o token, as permissões Workers AI e a conta configurada no servidor. O briefing foi preservado.');
+          if ([402, 429].includes(res!.status)) throw new HttpError(429,
+            'A Cloudflare atingiu a cota ou o limite de requisições. Aguarde a renovação para gerar com IA ou use os textos do briefing, sem IA.');
+          if (res!.status >= 500) throw new HttpError(503,
+            'A geração de textos da Cloudflare está temporariamente indisponível. Tente novamente mais tarde; o briefing foi preservado.');
+          if (res!.status === 404) throw new HttpError(502,
+            'O modelo de texto não está disponível na conta Cloudflare. Peça ao administrador para conferir a configuração.');
+        }
         const msg = `HTTP ${res!.status} (${model || 'deployment'}, ${mode}): ${(await res!.text()).slice(0, 300)}`;
         errors.push(msg);
         if (TRANSIENT.includes(res!.status)) {
@@ -129,10 +152,13 @@ async function callOpenAICompatible<T>(c: JsonCall<T>, azure: boolean): Promise<
     }
     if (!overloaded && errors.length && !errors[errors.length - 1].startsWith('HTTP 404')) break;
   }
+  if (env.aiProvider === 'cloudflare' && !isDemo()) throw new HttpError(502,
+    'A Cloudflare não retornou os textos no formato esperado. Tente novamente ou use os textos do briefing, sem IA.');
   throw new Error(errors.join(' | '));
 }
 
 async function callAnthropic<T>(c: JsonCall<T>): Promise<T> {
+  requireFreeTextProvider();
   const content = c.user.map((p) => (p.type === 'text' ? { type: 'text', text: p.text } : { type: 'image', source: { type: 'base64', media_type: p.mime, data: p.base64 } }));
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -167,7 +193,9 @@ async function callJson<T>(c: JsonCall<T>): Promise<T> {
 }
 
 export function isLlmConfigured(): boolean {
+  if(!isDemo() && env.aiProvider!=='cloudflare')return false;
   if (env.aiProvider === 'openai') return !!env.openai.key;
+  if (env.aiProvider === 'cloudflare') return credentialProvided(env.cloudflare.token) && credentialProvided(env.cloudflare.accountId);
   if (env.aiProvider === 'azure-openai') return !!(env.azure.endpoint && env.azure.key && env.azure.deployment);
   if (env.aiProvider === 'anthropic') return !!env.anthropic.key;
   return false;
@@ -196,12 +224,23 @@ export const llmProvider: AIProvider = {
 
 /** Institution copy is a separate prompt; pharmacy product rules must not leak into it. */
 export async function generateInstitutionalCopy(
-  input: { name:string; objective:string; audience:string; keyMessage:string; cta:string; sourceNotes:string },
+  input: { name:string; objective:string; audience:string; keyMessage:string; cta:string; sourceNotes:string; catalogItem?:import('../brand-catalog.service').BrandCatalogItem|null },
   brand: {name:string; description:string; tone:string; guidelines:string},
 ): Promise<{headline:string;subtitle:string;caption:string;cta:string}> {
-  const schema = z.object({ headline:z.string().min(2).max(110), subtitle:z.string().min(2).max(220),
+  const schema = z.object({ headline:z.string().min(2).max(110), subtitle:z.string().min(2).max(400),
     caption:z.string().min(5).max(1000), cta:z.string().min(2).max(50) });
   return callJson({ name:'campanha_institucional', schema, maxTokens:750,
     system:'Você cria texto publicitário em português brasileiro. Use EXCLUSIVAMENTE dados fornecidos como fatos. Não invente preços, resultados, parcerias, estatísticas, URLs nem serviços. O CTA deve preservar o sentido do CTA fornecido. Não inclua hashtags não solicitadas. Responda somente no formato JSON validável.',
-    user:[{type:'text',text:JSON.stringify({brand,input})}] });
+    user:[{type:'text',text:JSON.stringify({brand:{name:brand.name,description:brand.description,tone:brand.tone,guidelines:brand.guidelines},input})}] });
+}
+
+/** Proposes copy only. Applying it is a separate human action in the UI. */
+export async function editInstitutionalCopy(
+  campaign: import('../institutional.service').InstitutionalCampaign,
+  instruction: string,
+): Promise<{headline:string;subtitle:string;caption:string;cta:string}> {
+  const schema = z.object({headline:z.string().min(2).max(110),subtitle:z.string().min(2).max(400),caption:z.string().min(5).max(1000),cta:z.string().min(2).max(50)});
+  return callJson({name:'edicao_institucional',schema,maxTokens:850,
+    system:'Edite textos publicitários em português brasileiro usando o pedido apenas para estilo. Preserve fatos, nomes, preços, números e condições. Use exclusivamente os fatos do briefing. Não acrescente resultados, parcerias, URLs, ofertas nem serviços. O campo cta deve ser exatamente igual ao CTA atual. Retorne todos os campos em JSON. A proposta será conferida por uma pessoa antes de ser aplicada; nunca publique nem aprove.',
+    user:[{type:'text',text:JSON.stringify({brand:{name:campaign.brand.name,description:campaign.brand.description,tone:campaign.brand.tone,guidelines:campaign.brand.guidelines},briefing:campaign.input,current:campaign.copies,catalogItem:campaign.catalogItem,instruction})}]});
 }

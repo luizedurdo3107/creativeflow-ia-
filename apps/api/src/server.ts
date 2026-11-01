@@ -8,7 +8,7 @@ import { closeRenderer } from './services/render.service';
 const db = await initDb();
 await seedIfEmpty();
 const app = createApp();
-const server = app.listen(env.port, () => {
+const server = app.listen(env.port, env.host, () => {
   const ai = aiStatus();
   console.log(`CreativeFlow API em http://localhost:${env.port}  ·  banco: ${db.kind}  ·  IA: ${ai.provider} (${ai.mode})`);
 });
